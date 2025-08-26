@@ -360,7 +360,35 @@ with tab1:
                             files_to_zip.append({"name": output_filename, "data": output_path.read_bytes()})
                             success_count += 1
                         except subprocess.CalledProcessError as e:
-                            st.error(f"Failed to generate '{final_mode_name}' version. Error: {e.stderr}")
+                            error_msg = e.stderr.lower() if e.stderr else ""
+                            
+                            # Check for config-related errors
+                            if any(keyword in error_msg for keyword in ['config', 'template', 'not found', 'missing', 'no such file']):
+                                st.error("⚠️ **Company Configuration Missing**")
+                                st.markdown(f"""
+                                <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 10px 0;">
+                                <h4 style="color: #856404; margin-top: 0;">🏢 This company's invoice template hasn't been set up yet</h4>
+                                <p style="color: #856404; margin-bottom: 10px;">
+                                To generate invoices for <strong>{identifier}</strong>, you'll need to:
+                                </p>
+                                <ol style="color: #856404;">
+                                <li>Go to the <strong>🏢 Company Setup Assistant</strong> page</li>
+                                <li>Upload the company's Excel invoice template</li>
+                                <li>Complete the setup process (takes 5-10 minutes)</li>
+                                <li>Return here to generate invoices</li>
+                                </ol>
+                                </div>
+                                """, unsafe_allow_html=True)
+                                
+                                col_help1, col_help2 = st.columns(2)
+                                with col_help1:
+                                    if st.button("🏢 Go to Company Setup", key=f"setup_{mode_name}", use_container_width=True):
+                                        st.switch_page("pages/2_Config_Generator.py")
+                                with col_help2:
+                                    with st.expander("🔍 Technical Details"):
+                                        st.code(f"Error: {e.stderr}")
+                            else:
+                                st.error(f"Failed to generate '{final_mode_name}' version. Error: {e.stderr}")
             
             # Offer download
             if success_count > 0:
@@ -501,7 +529,37 @@ with tab2:
                         st.download_button(label=f"Download All Documents and Data (.zip)", data=zip_buffer.getvalue(), file_name=zip_filename, mime="application/zip", use_container_width=True)
                 
                 except subprocess.CalledProcessError as e:
-                    st.error("Step 2 FAILED."); st.text_area("Full Error Log:", e.stdout + e.stderr, height=300); st.stop()
+                    error_msg = (e.stdout + e.stderr).lower() if (e.stdout or e.stderr) else ""
+                    
+                    # Check for config-related errors
+                    if any(keyword in error_msg for keyword in ['config', 'template', 'not found', 'missing', 'no such file']):
+                        st.error("⚠️ **Company Configuration Missing**")
+                        st.markdown(f"""
+                        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 10px 0;">
+                        <h4 style="color: #856404; margin-top: 0;">🏢 This company's invoice template hasn't been set up yet</h4>
+                        <p style="color: #856404; margin-bottom: 10px;">
+                        To generate invoices for this company, you'll need to:
+                        </p>
+                        <ol style="color: #856404;">
+                        <li>Go to the <strong>🏢 Company Setup Assistant</strong> page</li>
+                        <li>Upload the company's Excel invoice template</li>
+                        <li>Complete the setup process (takes 5-10 minutes)</li>
+                        <li>Return here to generate invoices</li>
+                        </ol>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        col_help1, col_help2 = st.columns(2)
+                        with col_help1:
+                            if st.button("🏢 Go to Company Setup", key="setup_2nd_layer", use_container_width=True):
+                                st.switch_page("pages/2_Config_Generator.py")
+                        with col_help2:
+                            with st.expander("🔍 Technical Details"):
+                                st.text_area("Full Error Log:", e.stdout + e.stderr, height=300)
+                    else:
+                        st.error("Step 2 FAILED.")
+                        st.text_area("Full Error Log:", e.stdout + e.stderr, height=300)
+                    st.stop()
                 except Exception as e:
                     st.error(f"An unexpected error occurred: {e}")
                 finally:

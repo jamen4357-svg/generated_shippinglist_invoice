@@ -1,0 +1,8 @@
+{
+  "mcp.servers": {
+    "excel": {
+      "command": "uvx",
+      "args": ["excel-mcp-server", "stdio"]
+    }
+  }
+}

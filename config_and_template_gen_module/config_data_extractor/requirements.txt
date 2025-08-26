@@ -1,0 +1,11 @@
+# Core Excel processing
+openpyxl>=3.1.0
+
+# Data analysis and manipulation
+pandas>=2.0.0
+
+# Standard library enhancements (for older Python versions)
+pathlib2>=2.3.7; python_version < "3.4"
+
+# Type hints support
+typing-extensions>=4.0.0

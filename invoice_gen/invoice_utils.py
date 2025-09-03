@@ -1352,9 +1352,14 @@ def write_footer_row(
         footer_row_num: The 1-based row index for the footer.
         header_info: The header dictionary containing 'column_id_map' and 'num_columns'.
         sum_ranges: A list of tuples, where each tuple is a (start_row, end_row) of data to sum.
-        footer_config: The footer configuration object from the JSON.
+        footer_config: The footer configuration object from the JSON. The start_column_id field now supports:
+                      - Column ID strings: {"start_column_id": "col_po", "colspan": 3}
+                      - Raw column indices: {"start_column_id": 2, "colspan": 3}
+                      - Raw indices as strings: {"start_column_id": "2", "colspan": 3}
         pallet_count: The total number of pallets to display in the footer.
         override_total_text: Optional text to use instead of the one in the config.
+        fob_mode: Whether FOB mode is enabled.
+        grand_total_flag: Whether this is a grand total footer.
 
     Returns:
         The row index (footer_row_num) on success, or -1 on failure.
@@ -1434,13 +1439,28 @@ def write_footer_row(
         # --- 4. Apply Merges ---
         merge_rules = footer_config.get("merge_rules", [])
         for rule in merge_rules:
-            start_col_id = rule.get("start_column_id")
+            start_column_id = rule.get("start_column_id")
             colspan = rule.get("colspan")
-            start_col = column_map_by_id.get(start_col_id)
-            if start_col and colspan:
-                end_col = min(start_col + colspan - 1, num_columns)
-                worksheet.merge_cells(start_row=footer_row_num, start_column=start_col, end_row=footer_row_num, end_column=end_col)
-                worksheet.cell(row=footer_row_num, column=start_col).alignment = align_to_apply
+            
+            resolved_start_col = None
+            
+            # Enhanced start_column_id: supports both column IDs and raw indices
+            if start_column_id is not None:
+                if isinstance(start_column_id, int):
+                    # Raw column index (integer)
+                    resolved_start_col = start_column_id
+                elif isinstance(start_column_id, str):
+                    # Try to parse as integer first (raw index as string)
+                    try:
+                        resolved_start_col = int(start_column_id)
+                    except ValueError:
+                        # Not a number, treat as column ID and look up in map
+                        resolved_start_col = column_map_by_id.get(start_column_id)
+            
+            if resolved_start_col and colspan:
+                end_col = min(resolved_start_col + colspan - 1, num_columns)
+                worksheet.merge_cells(start_row=footer_row_num, start_column=resolved_start_col, end_row=footer_row_num, end_column=end_col)
+                worksheet.cell(row=footer_row_num, column=resolved_start_col).alignment = align_to_apply
 
         return footer_row_num
 

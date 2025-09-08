@@ -25,7 +25,7 @@ st.title("✨ New Invoice Template Generator")
 # --- Path Setup ---
 try:
     PROJECT_ROOT = Path(__file__).resolve().parent.parent
-    CONFIG_GEN_DIR = PROJECT_ROOT / "config_and_template_gen_module"
+    CONFIG_GEN_DIR = PROJECT_ROOT / "config_template_cli"
     TEMP_DIR = PROJECT_ROOT / "data" / "temp_uploads"
     CONFIG_OUTPUT_DIR = PROJECT_ROOT / "invoice_gen" / "config"
     TEMPLATE_OUTPUT_DIR = PROJECT_ROOT / "invoice_gen" / "TEMPLATE"
@@ -42,7 +42,7 @@ except Exception as e:
 
 # --- Backend Logic (Local Implementations) ---
 # Critical Constraint: These functions call the generator scripts as external
-# processes and do not modify any code within config_and_template_gen_module.
+# processes and do not modify any code within config_template_cli.
 
 def run_command(command, verbose=False):
     """Executes a command in a subprocess and handles Streamlit output."""
@@ -106,10 +106,23 @@ def get_missing_headers(analysis_file_path: str):
             for header in sheet.get('header_positions', [])
         }
 
-        missing_headers = [
-            {"text": header, "suggestion": get_header_suggestions(header)}
-            for header in all_found_headers if header not in current_mappings
-        ]
+        missing_headers = []
+        for header in all_found_headers:
+            # Check for exact match first
+            if header in current_mappings:
+                continue
+            
+            # Check for case-insensitive match
+            header_lower = header.lower()
+            mapping_found = False
+            for mapped_header in current_mappings:
+                if mapped_header.lower() == header_lower:
+                    mapping_found = True
+                    break
+            
+            if not mapping_found:
+                missing_headers.append({"text": header, "suggestion": get_header_suggestions(header)})
+        
         return missing_headers
     except Exception as e:
         st.error(f"Error getting missing headers: {e}")
@@ -147,31 +160,6 @@ def update_mapping_config(new_mappings: dict):
         return True
     except Exception as e:
         st.error(f"Error updating mapping config: {e}")
-        return False
-
-def generate_config_file(analysis_path: str, output_path: str, verbose: bool = False):
-    """Generates the final configuration file by calling the external generation script."""
-    generate_script_path = CONFIG_GEN_DIR / "generate_config" / "generate_config_ascii.py"
-    template_path = CONFIG_GEN_DIR / "generate_config" / "sample_config.json"
-    if not generate_script_path.exists() or not template_path.exists():
-        st.error(f"Config generation script or template not found.")
-        return False
-
-    generate_command = [
-        sys.executable, '-X', 'utf8', str(generate_script_path),
-        analysis_path, '-t', str(template_path), '-o', output_path
-    ]
-    if verbose: generate_command.append('-v')
-    return run_command(generate_command, verbose)
-
-def create_template_from_file(source_excel_path: str, destination_path: str):
-    """Copies a source Excel file to a destination to serve as a new template."""
-    try:
-        Path(destination_path).parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(source_excel_path, destination_path)
-        return True
-    except Exception as e:
-        st.error(f"Error creating template file: {e}")
         return False
 
 # --- System Headers ---

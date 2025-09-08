@@ -19,3 +19,7 @@ __pycache__/
 # Optional: Add other files or patterns you want to ignore, like temp files.
 # For example, to ignore all .log files:
 # *.log
+
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md

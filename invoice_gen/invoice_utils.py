@@ -1394,20 +1394,60 @@ def write_footer_row(
         # --- 2. Write Content (Labels, Formulas, and Pallet Count) ---
         total_text = override_total_text if override_total_text is not None else footer_config.get("total_text", "TOTAL:")
         total_text_col_id = footer_config.get("total_text_column_id")
-        if total_text_col_id and column_map_by_id.get(total_text_col_id):
-            cell = worksheet.cell(row=footer_row_num, column=column_map_by_id[total_text_col_id], value=total_text)
+        
+        # Enhanced total_text_column_id: supports both column IDs and raw indices (0-based)
+        total_text_col_idx = None
+        if total_text_col_id is not None:
+            if isinstance(total_text_col_id, int):
+                # Raw column index (0-based, like programming arrays)
+                # Convert to Excel's 1-based indexing by adding 1
+                total_text_col_idx = total_text_col_id + 1
+                print(f"Using raw column index {total_text_col_id} (0-based) for total text -> Excel column {total_text_col_idx} (1-based)")
+            elif isinstance(total_text_col_id, str):
+                # Try to parse as integer first (raw index as string)
+                try:
+                    raw_index = int(total_text_col_id)
+                    # Convert to Excel's 1-based indexing by adding 1
+                    total_text_col_idx = raw_index + 1
+                    print(f"Using raw column index '{total_text_col_id}' (0-based string) for total text -> Excel column {total_text_col_idx} (1-based)")
+                except ValueError:
+                    # Not a number, treat as column ID and look up in map
+                    total_text_col_idx = column_map_by_id.get(total_text_col_id)
+                    print(f"Using column ID '{total_text_col_id}' for total text -> Excel column {total_text_col_idx} (1-based)")
+        
+        if total_text_col_idx:
+            cell = worksheet.cell(row=footer_row_num, column=total_text_col_idx, value=total_text)
             cell.font = font_to_apply
             cell.alignment = align_to_apply
 
         # Write Pallet Count Text
         pallet_col_id = footer_config.get("pallet_count_column_id")
-        if pallet_col_id and pallet_count > 0:
-            pallet_col_idx = column_map_by_id.get(pallet_col_id)
-            if pallet_col_idx:
-                pallet_text = f"{pallet_count} PALLET{'S' if pallet_count != 1 else ''}"
-                cell = worksheet.cell(row=footer_row_num, column=pallet_col_idx, value=pallet_text)
-                cell.font = font_to_apply
-                cell.alignment = align_to_apply
+        
+        # Enhanced pallet_count_column_id: supports both column IDs and raw indices (0-based)
+        pallet_col_idx = None
+        if pallet_col_id is not None and pallet_count > 0:
+            if isinstance(pallet_col_id, int):
+                # Raw column index (0-based, like programming arrays)
+                # Convert to Excel's 1-based indexing by adding 1
+                pallet_col_idx = pallet_col_id + 1
+                print(f"Using raw column index {pallet_col_id} (0-based) for pallet count -> Excel column {pallet_col_idx} (1-based)")
+            elif isinstance(pallet_col_id, str):
+                # Try to parse as integer first (raw index as string)
+                try:
+                    raw_index = int(pallet_col_id)
+                    # Convert to Excel's 1-based indexing by adding 1
+                    pallet_col_idx = raw_index + 1
+                    print(f"Using raw column index '{pallet_col_id}' (0-based string) for pallet count -> Excel column {pallet_col_idx} (1-based)")
+                except ValueError:
+                    # Not a number, treat as column ID and look up in map
+                    pallet_col_idx = column_map_by_id.get(pallet_col_id)
+                    print(f"Using column ID '{pallet_col_id}' for pallet count -> Excel column {pallet_col_idx} (1-based)")
+        
+        if pallet_col_idx:
+            pallet_text = f"{pallet_count} PALLET{'S' if pallet_count != 1 else ''}"
+            cell = worksheet.cell(row=footer_row_num, column=pallet_col_idx, value=pallet_text)
+            cell.font = font_to_apply
+            cell.alignment = align_to_apply
 
         sum_column_ids = footer_config.get("sum_column_ids", [])
         if sum_ranges:
@@ -1447,15 +1487,21 @@ def write_footer_row(
             # Enhanced start_column_id: supports both column IDs and raw indices
             if start_column_id is not None:
                 if isinstance(start_column_id, int):
-                    # Raw column index (integer)
-                    resolved_start_col = start_column_id
+                    # Raw column index (0-based, like programming arrays)
+                    # Convert to Excel's 1-based indexing by adding 1
+                    resolved_start_col = start_column_id + 1
+                    print(f"Using raw column index {start_column_id} (0-based) -> Excel column {resolved_start_col} (1-based)")
                 elif isinstance(start_column_id, str):
                     # Try to parse as integer first (raw index as string)
                     try:
-                        resolved_start_col = int(start_column_id)
+                        raw_index = int(start_column_id)
+                        # Convert to Excel's 1-based indexing by adding 1
+                        resolved_start_col = raw_index + 1
+                        print(f"Using raw column index '{start_column_id}' (0-based string) -> Excel column {resolved_start_col} (1-based)")
                     except ValueError:
                         # Not a number, treat as column ID and look up in map
                         resolved_start_col = column_map_by_id.get(start_column_id)
+                        print(f"Using column ID '{start_column_id}' -> Excel column {resolved_start_col} (1-based)")
             
             if resolved_start_col and colspan:
                 end_col = min(resolved_start_col + colspan - 1, num_columns)

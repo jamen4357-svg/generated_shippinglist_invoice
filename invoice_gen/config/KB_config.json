@@ -10,7 +10,7 @@
       "start_row": 20,
       "add_blank_before_footer": false,
       "static_content_before_footer": {
-        "2": "HS CODE: 4202.92.00"
+        "2": "HS CODE"
       },
       "header_to_write": [
         { "row": 0, "col": 0, "text": "Mark & Nº",                "id": "col_static",         "rowspan": 1 },

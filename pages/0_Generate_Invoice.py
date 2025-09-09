@@ -47,6 +47,7 @@ try:
     if str(CREATE_JSON_DIR) not in sys.path: sys.path.insert(0, str(CREATE_JSON_DIR))
     if str(INVOICE_GEN_DIR) not in sys.path: sys.path.insert(0, str(INVOICE_GEN_DIR))
     from main import run_invoice_automation # For High-Quality Leather
+    from print_area_config import PrintAreaConfig  # Import print area configuration
 except (ImportError, IndexError, NameError) as e:
     st.error(f"Error: Could not configure project paths or import necessary scripts. Please check your project's directory structure. Details: {e}")
     st.exception(e)
@@ -357,6 +358,43 @@ with tab1:
                         try:
                             # Add the 'env=sub_env' parameter to the call
                             subprocess.run(command, check=True, capture_output=True, text=True, cwd=INVOICE_GEN_DIR, encoding='utf-8', errors='replace', env=sub_env)
+                            
+                            # Apply print area configuration to the generated Excel file
+                            print("DEBUG: Starting print area configuration...")
+                            try:
+                                print(f"DEBUG: Processing file: {output_path}")
+                                print(f"DEBUG: File exists: {output_path.exists()}")
+                                print(f"DEBUG: File size: {output_path.stat().st_size} bytes")
+                                
+                                wb = openpyxl.load_workbook(output_path, read_only=False)
+                                ws = wb.active
+                                print(f"DEBUG: Original print area: {ws.print_area}")
+                                
+                                config = PrintAreaConfig()
+                                config.configure_print_settings(wb.active)
+                                wb.save(output_path)
+                                wb.close()
+                                
+                                print(f"DEBUG: File size after save: {output_path.stat().st_size} bytes")
+                                
+                                # Verify the settings were applied
+                                wb_verify = openpyxl.load_workbook(output_path, read_only=False)
+                                ws_verify = wb_verify.active
+                                print_area = ws_verify.print_area
+                                paper_size = ws_verify.page_setup.paperSize
+                                margins = f"{ws_verify.page_margins.left}, {ws_verify.page_margins.right}"
+                                centering = ws_verify.print_options.horizontalCentered
+                                view = ws_verify.sheet_view.view
+                                wb_verify.close()
+                                
+                                print(f"DEBUG: Verified print area: {print_area}")
+                                
+                                st.info(f"✅ Print settings applied to {output_filename}")
+                                st.write(f"📄 Print area: {print_area}, Paper: A4, Margins: {margins}, Centering: {centering}, View: {view}")
+                            except Exception as print_error:
+                                st.error(f"❌ Failed to apply print settings to {output_filename}: {print_error}")
+                                st.exception(print_error)
+                            
                             files_to_zip.append({"name": output_filename, "data": output_path.read_bytes()})
                             success_count += 1
                         except subprocess.CalledProcessError as e:
@@ -392,7 +430,8 @@ with tab1:
             
             # Offer download
             if success_count > 0:
-                st.success(f"Successfully created {success_count} invoice file(s)!")
+                st.success(f"Successfully created {success_count} invoice file(s) with print settings configured!")
+                st.info("📄 **Print Settings Applied:** A4 paper, 0.1\" margins, horizontal centering, page break preview enabled")
                 zip_buffer = io.BytesIO()
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
                     for file_info in files_to_zip: zf.writestr(file_info["name"], file_info["data"])
@@ -519,6 +558,45 @@ with tab2:
 
                         st.subheader("3. Download Generated Documents")
                         generated_files = list(Path(temp_output_dir).glob(f"* {summary_data['po_number']}.xlsx"))
+                        
+                        # Apply print area configuration to all generated Excel files
+                        if generated_files:
+                            print("DEBUG: Starting 2nd layer print area configuration...")
+                            st.info("📄 Applying print settings to generated Excel files...")
+                            for excel_file in generated_files:
+                                try:
+                                    print(f"DEBUG: Processing 2nd layer file: {excel_file}")
+                                    print(f"DEBUG: File exists: {excel_file.exists()}")
+                                    
+                                    wb = openpyxl.load_workbook(excel_file, read_only=False)
+                                    ws = wb.active
+                                    print(f"DEBUG: Original print area: {ws.print_area}")
+                                    
+                                    config = PrintAreaConfig()
+                                    config.configure_print_settings(wb.active)
+                                    wb.save(excel_file)
+                                    wb.close()
+                                    
+                                    print(f"DEBUG: File size after save: {excel_file.stat().st_size} bytes")
+                                    
+                                    # Verify the settings were applied
+                                    wb_verify = openpyxl.load_workbook(excel_file, read_only=False)
+                                    ws_verify = wb_verify.active
+                                    print_area = ws_verify.print_area
+                                    paper_size = ws_verify.page_setup.paperSize
+                                    margins = f"{ws_verify.page_margins.left}, {ws_verify.page_margins.right}"
+                                    centering = ws_verify.print_options.horizontalCentered
+                                    view = ws_verify.sheet_view.view
+                                    wb_verify.close()
+                                    
+                                    print(f"DEBUG: Verified print area: {print_area}")
+                                    
+                                    st.info(f"✅ Print settings applied to {excel_file.name}")
+                                    st.write(f"📄 Print area: {print_area}, Paper: A4, Margins: {margins}, Centering: {centering}, View: {view}")
+                                except Exception as print_error:
+                                    st.error(f"❌ Failed to apply print settings to {excel_file.name}: {print_error}")
+                                    st.exception(print_error)
+                            st.success("📄 **Print Settings Applied:** A4 paper, 0.1\" margins, horizontal centering, page break preview enabled")
                         
                         zip_filename = f"{summary_data['po_number']}.zip"
                         zip_buffer = io.BytesIO()

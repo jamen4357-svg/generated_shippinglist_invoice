@@ -44,7 +44,7 @@ except Exception as e:
 # Critical Constraint: These functions call the generator scripts as external
 # processes and do not modify any code within config_template_cli.
 
-def run_command(command, verbose=False):
+def run_command(command, verbose=False, cwd=None):
     """Executes a command in a subprocess and handles Streamlit output."""
     try:
         if verbose:
@@ -58,7 +58,8 @@ def run_command(command, verbose=False):
                 stderr=subprocess.PIPE,
                 text=True,
                 encoding='utf-8',
-                errors='replace'
+                errors='replace',
+                cwd=cwd
             )
             stdout, stderr = process.communicate()
 
@@ -86,7 +87,7 @@ def analyze_excel_file(excel_file_path: str, output_path: str, verbose: bool = F
         sys.executable, '-X', 'utf8', str(analyze_script_path),
         excel_file_path, '--json', '--quantity-mode', '-o', output_path
     ]
-    return run_command(analyze_command, verbose)
+    return run_command(analyze_command, verbose, cwd=str(CONFIG_GEN_DIR))
 
 def get_missing_headers(analysis_file_path: str):
     """Extracts headers from the analysis file and identifies missing mappings."""
@@ -333,7 +334,7 @@ if invoice_template_file:
                 ]
                 
                 # This command now handles everything: analysis, config gen, and template gen.
-                if not run_command(command, verbose=True):
+                if not run_command(command, verbose=True, cwd=str(CONFIG_GEN_DIR)):
                     st.error("The main generation script failed. Please check the logs above.")
                     st.stop()
 

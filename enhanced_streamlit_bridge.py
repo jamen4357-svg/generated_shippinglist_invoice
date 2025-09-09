@@ -16,7 +16,7 @@ from typing import Dict, List, Tuple, Optional
 import streamlit as st
 
 # Define the base directory of the project
-BASE_DIR = Path(__file__).parent / "config_and_template_gen_module"
+BASE_DIR = Path(__file__).parent / "config_template_cli"
 
 # Define paths to the scripts
 ANALYZE_SCRIPT_PATH = BASE_DIR / "config_data_extractor" / "analyze_excel.py"

@@ -235,6 +235,7 @@ def run_fob_specific_replacement_task(workbook: openpyxl.Workbook):
         {"find": "FCA: BAVET,SVAYRIENG", "replace": "FOB: BAVET", "match_mode": "exact"},
         {"find": "FOB  BAVET,SVAYRIENG", "replace": "FOB BAVET", "match_mode": "exact"},
         {"find": "FOB: BAVET,SVAYRIENG", "replace": "FOB: BAVET", "match_mode": "exact"},
+        {"find": "SVAY RIENG", "replace": "BAVET", "match_mode": "exact"},
         {"find": "PORT KLANG", "replace": "BAVET", "match_mode": "exact"},
         {"find": "HCM", "replace": "BAVET", "match_mode": "exact"},
         {"find": "DAP", "replace": "FOB", "match_mode": "substring"},

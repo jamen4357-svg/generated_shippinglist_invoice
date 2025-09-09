@@ -17,7 +17,7 @@
         { "row": 0, "col": 1, "text": "P.O. Nº",              "id": "col_po",         "rowspan": 1 },
         { "row": 0, "col": 2, "text": "ITEM Nº",              "id": "col_item",       "rowspan": 1 },
         { "row": 0, "col": 3, "text": "Description",          "id": "col_desc",       "rowspan": 1 },
-        { "row": 0, "col": 4, "text": "Quantity",                 "id": "col_qty_sf" },
+        { "row": 0, "col": 4, "text": "Quantity(SF)",                 "id": "col_qty_sf" },
         { "row": 0, "col": 5, "text": "Unit price (USD)",   "id": "col_unit_price", "rowspan": 1 },
         { "row": 0, "col": 6, "text": "Amount (USD)",       "id": "col_amount",     "rowspan": 1 }
       ],

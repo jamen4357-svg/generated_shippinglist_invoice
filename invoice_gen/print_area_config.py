@@ -9,9 +9,6 @@ including dynamic print area detection, A4 paper size, and margin settings.
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.utils import get_column_letter
 from typing import Optional, Tuple
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 class PrintAreaConfig:
@@ -40,6 +37,10 @@ class PrintAreaConfig:
             worksheet: The openpyxl worksheet to configure
         """
         try:
+            # Skip hidden sheets
+            if worksheet.sheet_state != 'visible':
+                return
+
             # Set paper size to A4
             self._set_paper_size(worksheet)
 
@@ -55,17 +56,13 @@ class PrintAreaConfig:
             # Set dynamic print area
             self._set_dynamic_print_area(worksheet)
 
-            logger.info(f"Print settings configured for worksheet: {worksheet.title}")
-
         except Exception as e:
-            logger.error(f"Error configuring print settings for {worksheet.title}: {e}")
             raise
 
     def _set_paper_size(self, worksheet: Worksheet) -> None:
         """Set paper size to A4."""
         worksheet.page_setup.paperSize = worksheet.PAPERSIZE_A4
         worksheet.page_setup.orientation = 'portrait'  # Default to portrait
-        logger.debug("Paper size set to A4")
 
     def _set_margins(self, worksheet: Worksheet) -> None:
         """Set page margins."""
@@ -73,13 +70,11 @@ class PrintAreaConfig:
         worksheet.page_margins.right = self.margin_right
         worksheet.page_margins.top = self.margin_top
         worksheet.page_margins.bottom = self.margin_bottom
-        logger.debug(f"Margins set: L={self.margin_left}, R={self.margin_right}, T={self.margin_top}, B={self.margin_bottom}")
 
     def _set_centering(self, worksheet: Worksheet) -> None:
         """Set page centering options."""
         worksheet.print_options.horizontalCentered = self.center_horizontally
         worksheet.print_options.verticalCentered = self.center_vertically
-        logger.debug(f"Centering set: Horizontal={self.center_horizontally}, Vertical={self.center_vertically}")
 
     def _set_worksheet_view(self, worksheet: Worksheet) -> None:
         """Set worksheet view options including page breaks display."""
@@ -87,10 +82,8 @@ class PrintAreaConfig:
             # Set view to show page breaks
             if self.show_page_breaks:
                 worksheet.sheet_view.view = 'pageBreakPreview'
-                logger.debug("Page breaks enabled in worksheet view")
             else:
                 worksheet.sheet_view.view = 'normal'
-                logger.debug("Normal worksheet view (page breaks hidden)")
 
             # Set grid lines visibility
             worksheet.sheet_view.showGridLines = self.show_grid_lines
@@ -98,11 +91,9 @@ class PrintAreaConfig:
             # Set row/column headers visibility
             worksheet.sheet_view.showRowColHeaders = self.show_row_col_headers
 
-            logger.debug(f"Worksheet view configured: PageBreaks={self.show_page_breaks}, GridLines={self.show_grid_lines}, Headers={self.show_row_col_headers}")
-
         except Exception as e:
-            logger.warning(f"Could not set worksheet view options: {e}")
             # Continue without failing - view settings are not critical
+            pass
 
     def _set_dynamic_print_area(self, worksheet: Worksheet) -> None:
         """
@@ -117,7 +108,6 @@ class PrintAreaConfig:
             min_row, max_row, min_col, max_col = self._find_data_boundaries(worksheet)
 
             if max_row is None or max_col is None:
-                logger.warning("No data found in worksheet, skipping print area configuration")
                 return
 
             # Convert column numbers to letters
@@ -127,13 +117,14 @@ class PrintAreaConfig:
             # Create print area range (rows are 1-based, columns are 1-based)
             print_area = f"{start_col_letter}{min_row}:{end_col_letter}{max_row}"
 
+            # Clear any existing print area first
+            if hasattr(worksheet, 'print_area') and worksheet.print_area:
+                worksheet.print_area = None
+
             # Set the print area
             worksheet.print_area = print_area
 
-            logger.info(f"Print area set to: {print_area}")
-
         except Exception as e:
-            logger.error(f"Error setting dynamic print area: {e}")
             raise
 
     def _find_data_boundaries(self, worksheet: Worksheet) -> Tuple[int, int, int, int]:
@@ -150,19 +141,21 @@ class PrintAreaConfig:
         max_col = None
 
         # Iterate through all cells to find data boundaries
-        for row in range(1, worksheet.max_row + 1):
-            for col in range(1, worksheet.max_column + 1):
-                cell = worksheet.cell(row=row, column=col)
+        for row in worksheet.iter_rows():
+            for cell in row:
                 if cell.value is not None and str(cell.value).strip():
+                    row_idx = cell.row
+                    col_idx = cell.column
+                    
                     # Update boundaries
-                    if min_row is None or row < min_row:
-                        min_row = row
-                    if max_row is None or row > max_row:
-                        max_row = row
-                    if min_col is None or col < min_col:
-                        min_col = col
-                    if max_col is None or col > max_col:
-                        max_col = col
+                    if min_row is None or row_idx < min_row:
+                        min_row = row_idx
+                    if max_row is None or row_idx > max_row:
+                        max_row = row_idx
+                    if min_col is None or col_idx < min_col:
+                        min_col = col_idx
+                    if max_col is None or col_idx > max_col:
+                        max_col = col_idx
 
         return min_row, max_row, min_col, max_col
 
@@ -178,9 +171,7 @@ class PrintAreaConfig:
         try:
             print_area = f"{start_cell}:{end_cell}"
             worksheet.print_area = print_area
-            logger.info(f"Custom print area set to: {print_area}")
         except Exception as e:
-            logger.error(f"Error setting custom print area {start_cell}:{end_cell}: {e}")
             raise
 
     def set_print_titles(self, worksheet: Worksheet, title_rows: Optional[str] = None,
@@ -196,14 +187,11 @@ class PrintAreaConfig:
         try:
             if title_rows:
                 worksheet.print_title_rows = title_rows
-                logger.info(f"Print title rows set to: {title_rows}")
 
             if title_cols:
                 worksheet.print_title_cols = title_cols
-                logger.info(f"Print title columns set to: {title_cols}")
 
         except Exception as e:
-            logger.error(f"Error setting print titles: {e}")
             raise
 
     def set_view_options(self, show_page_breaks: bool = True, show_grid_lines: bool = True,
@@ -219,7 +207,6 @@ class PrintAreaConfig:
         self.show_page_breaks = show_page_breaks
         self.show_grid_lines = show_grid_lines
         self.show_row_col_headers = show_headers
-        logger.info(f"View options updated: PageBreaks={show_page_breaks}, GridLines={show_grid_lines}, Headers={show_headers}")
 
 
 # Convenience function for quick configuration
@@ -259,10 +246,6 @@ def example_usage():
 
     # Save the workbook
     wb.save('example_with_print_settings.xlsx')
-    print("Example workbook saved with print settings configured.")
-    print(f"Page breaks view: {ws.sheet_view.view}")
-    print(f"Grid lines: {ws.sheet_view.showGridLines}")
-    print(f"Headers: {ws.sheet_view.showRowColHeaders}")
 
 
 if __name__ == "__main__":

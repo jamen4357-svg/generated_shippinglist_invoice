@@ -10,6 +10,94 @@ from zoneinfo import ZoneInfo
 from auth_wrapper import setup_page_auth
 from login import log_business_activity
 
+# --- Helper Functions for Change Tracking ---
+def generate_change_description(original_data, edited_df, max_changes=3):
+    """
+    Generate a detailed description of what changed between original and edited data.
+    
+    Args:
+        original_data: Original DataFrame or list of records
+        edited_df: Edited DataFrame
+        max_changes: Maximum number of changes to show in description
+    
+    Returns:
+        str: Detailed description of changes
+    """
+    if original_data is None or edited_df is None:
+        return f"Updated {len(edited_df)} invoice records"
+    
+    changes = []
+    
+    # Convert original_data to DataFrame if it's a list
+    if isinstance(original_data, list):
+        if original_data:
+            original_df = pd.DataFrame(original_data)
+        else:
+            original_df = pd.DataFrame()
+    else:
+        original_df = original_data
+    
+    if original_df.empty:
+        return f"Created {len(edited_df)} new invoice records"
+    
+    # Get common columns
+    common_cols = set(original_df.columns) & set(edited_df.columns)
+    
+    # Track changes for each record
+    for idx in range(min(len(original_df), len(edited_df))):
+        original_row = original_df.iloc[idx] if idx < len(original_df) else None
+        edited_row = edited_df.iloc[idx] if idx < len(edited_df) else None
+        
+        if original_row is None:
+            changes.append(f"Added record {idx + 1}")
+            continue
+        elif edited_row is None:
+            changes.append(f"Removed record {idx + 1}")
+            continue
+        
+        # Compare each field
+        record_changes = []
+        for col in common_cols:
+            if col in ['id', 'creating_date', 'status']:  # Skip system fields
+                continue
+                
+            orig_val = original_row[col]
+            edit_val = edited_row[col]
+            
+            # Handle NaN values
+            if pd.isna(orig_val) and pd.isna(edit_val):
+                continue
+            elif pd.isna(orig_val) and not pd.isna(edit_val):
+                record_changes.append(f"{col}: None → {edit_val}")
+            elif not pd.isna(orig_val) and pd.isna(edit_val):
+                record_changes.append(f"{col}: {orig_val} → None")
+            elif str(orig_val) != str(edit_val):
+                # Format numeric values nicely
+                if isinstance(orig_val, (int, float)) and isinstance(edit_val, (int, float)):
+                    record_changes.append(f"{col}: {orig_val} → {edit_val}")
+                else:
+                    record_changes.append(f"{col}: '{orig_val}' → '{edit_val}'")
+        
+        if record_changes:
+            changes.append(f"Record {idx + 1}: {', '.join(record_changes[:3])}")  # Limit to 3 changes per record
+    
+    # Handle added/removed records
+    if len(edited_df) > len(original_df):
+        changes.append(f"Added {len(edited_df) - len(original_df)} new records")
+    elif len(original_df) > len(edited_df):
+        changes.append(f"Removed {len(original_df) - len(edited_df)} records")
+    
+    if not changes:
+        return f"Updated {len(edited_df)} invoice records (no field changes detected)"
+    
+    # Format the description
+    if len(changes) <= max_changes:
+        change_text = "; ".join(changes)
+    else:
+        change_text = "; ".join(changes[:max_changes]) + f"; ... and {len(changes) - max_changes} more changes"
+    
+    return f"Updated {len(edited_df)} records: {change_text}"
+
 # --- Enhanced Authentication Setup ---
 user_info = setup_page_auth(
     page_title="Invoice Management Suite", 
@@ -134,14 +222,17 @@ def update_invoice_data(original_inv_ref, edited_df, container_list):
             
             # Log the edit activity
             try:
+                # Generate detailed change description
+                detailed_description = generate_change_description(original_data, edited_df)
+                
                 log_business_activity(
                     user_id=user_info['user_id'],
-                    description=f"Edited invoice data - {len(edited_df)} records updated",
+                    description=f"Edited invoice {new_inv_ref} - {detailed_description}",
                     activity_type='INVOICE_EDIT',
                     username=user_info['username'],
                     target_invoice_ref=new_inv_ref,
                     target_invoice_no=edited_df['inv_no'].iloc[0] if 'inv_no' in edited_df.columns else None,
-                    action_description=f"Edited invoice data - {len(edited_df)} records updated",
+                    action_description=detailed_description,
                     old_values=original_data.to_dict('records')[:5] if original_data is not None else None,
                     new_values=edited_df.to_dict('records')[:5],
                     success=True
@@ -167,19 +258,25 @@ def void_invoice_action(inv_ref_to_void):
             
             # Log the void activity
             try:
-                # Get invoice number for logging
-                cursor.execute(f"SELECT inv_no FROM {TABLE_NAME} WHERE inv_ref = ? LIMIT 1", (inv_ref_to_void,))
-                inv_no_result = cursor.fetchone()
-                inv_no = inv_no_result[0] if inv_no_result else None
+                # Get invoice number and details for logging
+                cursor.execute(f"SELECT inv_no, COUNT(*) as record_count FROM {TABLE_NAME} WHERE inv_ref = ? LIMIT 1", (inv_ref_to_void,))
+                inv_result = cursor.fetchone()
+                inv_no = inv_result[0] if inv_result else None
+                record_count = inv_result[1] if inv_result else 0
+                
+                detailed_desc = f"Voided invoice {inv_ref_to_void}"
+                if inv_no:
+                    detailed_desc += f" (Invoice No: {inv_no})"
+                detailed_desc += f" - {record_count} records marked as void"
                 
                 log_business_activity(
                     user_id=user_info['user_id'],
-                    description="Voided invoice",
+                    description=detailed_desc,
                     activity_type='INVOICE_VOID',
                     username=user_info['username'],
                     target_invoice_ref=inv_ref_to_void,
                     target_invoice_no=inv_no,
-                    action_description="Voided invoice",
+                    action_description=detailed_desc,
                     success=True
                 )
             except Exception as e:
@@ -203,19 +300,25 @@ def reactivate_invoice_action(inv_ref_to_reactivate):
             
             # Log the reactivation activity
             try:
-                # Get invoice number for logging
-                cursor.execute(f"SELECT inv_no FROM {TABLE_NAME} WHERE inv_ref = ? LIMIT 1", (inv_ref_to_reactivate,))
-                inv_no_result = cursor.fetchone()
-                inv_no = inv_no_result[0] if inv_no_result else None
+                # Get invoice number and details for logging
+                cursor.execute(f"SELECT inv_no, COUNT(*) as record_count FROM {TABLE_NAME} WHERE inv_ref = ? LIMIT 1", (inv_ref_to_reactivate,))
+                inv_result = cursor.fetchone()
+                inv_no = inv_result[0] if inv_result else None
+                record_count = inv_result[1] if inv_result else 0
+                
+                detailed_desc = f"Reactivated invoice {inv_ref_to_reactivate}"
+                if inv_no:
+                    detailed_desc += f" (Invoice No: {inv_no})"
+                detailed_desc += f" - {record_count} records restored to active status"
                 
                 log_business_activity(
                     user_id=user_info['user_id'],
-                    description="Reactivated invoice",
+                    description=detailed_desc,
                     activity_type='INVOICE_REACTIVATE',
                     username=user_info['username'],
                     target_invoice_ref=inv_ref_to_reactivate,
                     target_invoice_no=inv_no,
-                    action_description="Reactivated invoice",
+                    action_description=detailed_desc,
                     success=True
                 )
             except Exception as e:
@@ -240,19 +343,25 @@ def permanently_delete_invoice_action(inv_ref_to_delete):
             
             # Log the deletion activity
             try:
-                # Get invoice number for logging (before deletion)
-                cursor.execute(f"SELECT inv_no FROM {TABLE_NAME} WHERE inv_ref = ? LIMIT 1", (inv_ref_to_delete,))
-                inv_no_result = cursor.fetchone()
-                inv_no = inv_no_result[0] if inv_no_result else None
+                # Get invoice number and record count for logging (before deletion)
+                cursor.execute(f"SELECT inv_no, COUNT(*) as record_count FROM {TABLE_NAME} WHERE inv_ref = ? GROUP BY inv_ref", (inv_ref_to_delete,))
+                inv_result = cursor.fetchone()
+                inv_no = inv_result[0] if inv_result else None
+                record_count = inv_result[1] if inv_result else 0
+                
+                detailed_desc = f"Permanently deleted invoice {inv_ref_to_delete}"
+                if inv_no:
+                    detailed_desc += f" (Invoice No: {inv_no})"
+                detailed_desc += f" - {record_count} records and all associated data removed"
                 
                 log_business_activity(
                     user_id=user_info['user_id'],
-                    description="Permanently deleted invoice",
+                    description=detailed_desc,
                     activity_type='INVOICE_DELETE',
                     username=user_info['username'],
                     target_invoice_ref=inv_ref_to_delete,
                     target_invoice_no=inv_no,
-                    action_description="Permanently deleted invoice",
+                    action_description=detailed_desc,
                     success=True
                 )
             except Exception as e:

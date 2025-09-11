@@ -164,7 +164,6 @@ def load_data(data_path: Path) -> Optional[Dict[str, Any]]:
         # Use "initial_standard_aggregation" as requested
         aggregation_data_raw = invoice_data.get("standard_aggregation_results")
         if isinstance(aggregation_data_raw, dict):
-            print("DEBUG: Found 'standard_aggregation_results'. Converting string keys to tuples...")
             aggregation_data_processed = {}
             converted_count = 0
             conversion_errors = 0
@@ -234,14 +233,12 @@ def load_data(data_path: Path) -> Optional[Dict[str, Any]]:
             # Replace the original string-keyed dict with the tuple-keyed one
             # Update the key used for replacement as well
             invoice_data["standard_aggregation_results"] = aggregation_data_processed
-            print(f"DEBUG: Finished key conversion. Converted: {converted_count}, Errors: {conversion_errors}")
         # --- END AGGREGATION KEY CONVERSION ---
 
         # --- START CUSTOM AGGREGATION KEY CONVERSION ---
         # Added block to handle custom_aggregation_results
         custom_aggregation_data_raw = invoice_data.get("custom_aggregation_results")
         if isinstance(custom_aggregation_data_raw, dict):
-            print("DEBUG: Found 'custom_aggregation_results'. Converting string keys to tuples...")
             custom_aggregation_data_processed = {}
             custom_converted_count = 0
             custom_conversion_errors = 0
@@ -282,7 +279,6 @@ def load_data(data_path: Path) -> Optional[Dict[str, Any]]:
                     custom_conversion_errors += 1
 
             invoice_data["custom_aggregation_results"] = custom_aggregation_data_processed
-            print(f"DEBUG: Finished key conversion for custom_aggregation_results. Converted: {custom_converted_count}, Errors: {custom_conversion_errors}")
         # --- END CUSTOM AGGREGATION KEY CONVERSION ---
 
         return invoice_data
@@ -469,7 +465,7 @@ def process_single_table_sheet(
     # --- Get Data Source ---
     data_to_fill = None
     data_source_type = None
-    print(f"DEBUG: Retrieving data source for '{sheet_name}' using indicator: '{data_source_indicator}'")
+    print(f"Retrieving data source for '{sheet_name}' using indicator: '{data_source_indicator}'")
 
     # Logic to select the correct data source based on flags and config
     if args.custom and data_source_indicator == 'aggregation':
@@ -640,8 +636,7 @@ def main():
         )
         print("--- Finished initial template replacements ---\n")
 
-        original_merges = merge_utils.store_original_merges(workbook, sheets_to_process) # TODO: Re-enable
-        # print("DEBUG: Stored original merges structure:")
+        original_merges = merge_utils.store_original_merges(workbook, sheets_to_process)
 
         # --- Get other config sections ---
         sheet_data_map = config.get('sheet_data_map', {})
@@ -688,7 +683,7 @@ def main():
 
             # --- Check for FOB flag override ---
             if args.fob and sheet_name in ["Invoice", "Contract"]:
-                print(f"DEBUG: --fob flag active. Overriding data source for '{sheet_name}' to 'fob_aggregation'.")
+                print(f"--fob flag active. Overriding data source for '{sheet_name}' to 'fob_aggregation'.")
                 data_source_indicator = 'fob_aggregation'
             # --- End FOB flag override ---
 
@@ -712,8 +707,8 @@ def main():
             footer_config = sheet_mapping_section.get("footer_configurations", None),
 
             print(f"DEBUG Check Flags Read for Sheet '{sheet_name}': after_hdr={add_blank_after_hdr_flag}, before_ftr={add_blank_before_ftr_flag}")
-            if sheet_styling_config: print("DEBUG: Styling config found for this sheet.")
-            else: print("DEBUG: No styling config found for this sheet.")
+            if sheet_styling_config: print("Styling config found for this sheet.")
+            else: print("No styling config found for this sheet.")
 
             all_tables_data = invoice_data.get('processed_tables_data', {})
             table_keys = sorted(all_tables_data.keys(), key=lambda x: int(x) if str(x).isdigit() else float('inf'))

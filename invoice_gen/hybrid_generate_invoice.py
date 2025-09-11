@@ -78,18 +78,6 @@ def derive_paths(input_data_path_str: str, template_dir_str: str, config_dir_str
     print(f"Deriving paths from input: {input_data_path_str}")
     try:
         input_data_path, template_dir, config_dir = Path(input_data_path_str).resolve(), Path(template_dir_str).resolve(), Path(config_dir_str).resolve()
-        
-        # --- START OF DEBUG BLOCK 1 ---
-        print("\n--- WEB APP PATH DIAGNOSTICS ---")
-        print(f"DEBUG: Input data file path resolves to: {input_data_path}")
-        print(f"DEBUG: Template directory resolves to: {template_dir}")
-        print(f"DEBUG: Config directory resolves to: {config_dir}")
-        print(f"DEBUG: Checking initial existence...")
-        print(f"DEBUG:   Input exists? -> {input_data_path.exists()}")
-        print(f"DEBUG:   Template dir exists? -> {template_dir.exists()}")
-        print(f"DEBUG:   Config dir exists? -> {config_dir.exists()}")
-        print("--- END OF DEBUG BLOCK 1 ---\n")
-        # --- END OF DEBUG BLOCK 1 ---
 
         if not all([p.exists() for p in [input_data_path, template_dir, config_dir]]):
             print("Error: One or more paths (input file, template dir, config dir) not found.")

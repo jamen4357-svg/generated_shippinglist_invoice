@@ -110,10 +110,7 @@ def find_and_replace(
 
     for sheet in workbook.worksheets:
         if sheet.sheet_state != 'visible':
-            print(f"DEBUG: Skipping hidden sheet: '{sheet.title}'")
             continue
-
-        print(f"DEBUG: Processing sheet: '{sheet.title}'")
 
         # --- PASS 1: Find all placeholder locations and apply simple replacements ---
         print("  PASS 1: Locating placeholders and applying simple value replacements...")

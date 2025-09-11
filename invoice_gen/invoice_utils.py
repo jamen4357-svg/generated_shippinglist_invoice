@@ -1622,10 +1622,17 @@ def fill_invoice_data(
 
 
 
-    # get data source pallet count and hanle null
+    # get data source pallet count and handle null/conversion errors
     for pallet_count in data_source.get("pallet_count", []):
         if pallet_count is not None:
-            local_chunk_pallets += pallet_count
+            try:
+                # Convert to float first to handle decimal strings, then to int
+                numeric_pallet_count = float(str(pallet_count).strip())
+                local_chunk_pallets += int(numeric_pallet_count)
+            except (ValueError, TypeError) as e:
+                # Log the conversion error but continue processing
+                print(f"Warning: Could not convert pallet_count '{pallet_count}' to number: {e}")
+                continue
 
     # --- Row Index Tracking --- (Keep existing)
     row_after_header_idx = -1

@@ -354,10 +354,10 @@ with tab1:
                         # Set the environment for the subprocess to handle Unicode correctly
                         sub_env = os.environ.copy()
                         sub_env['PYTHONIOENCODING'] = 'utf-8'
-                        
+
                         try:
                             # Add the 'env=sub_env' parameter to the call
-                            subprocess.run(command, check=True, capture_output=True, text=True, cwd=INVOICE_GEN_DIR, encoding='utf-8', errors='replace', env=sub_env)
+                            result = subprocess.run(command, check=True, capture_output=True, text=True, cwd=INVOICE_GEN_DIR, encoding='utf-8', errors='replace', env=sub_env)
                             
                             # Small delay to ensure file is fully written
                             import time
@@ -402,7 +402,7 @@ with tab1:
                             success_count += 1
                         except subprocess.CalledProcessError as e:
                             error_msg = e.stderr.lower() if e.stderr else ""
-                            
+
                             # Check for config-related errors
                             if any(keyword in error_msg for keyword in ['config', 'template', 'not found', 'missing', 'no such file']):
                                 st.error("⚠️ **Company Configuration Missing**")
@@ -420,7 +420,7 @@ with tab1:
                                 </ol>
                                 </div>
                                 """, unsafe_allow_html=True)
-                                
+
                                 col_help1, col_help2 = st.columns(2)
                                 with col_help1:
                                     if st.button("🏢 Go to Company Setup", key=f"setup_{mode_name}", use_container_width=True):
@@ -430,6 +430,8 @@ with tab1:
                                         st.code(f"Error: {e.stderr}")
                             else:
                                 st.error(f"Failed to generate '{final_mode_name}' version. Error: {e.stderr}")
+                        except Exception as general_error:
+                            st.error(f"❌ Unexpected error for {identifier} - {mode_name}: {str(general_error)}")
             
             # Offer download
             if success_count > 0:
@@ -569,73 +571,44 @@ with tab2:
                         
                         # Apply print area configuration to all generated Excel files
                         if generated_files:
-                            print("DEBUG: Starting 2nd layer print area configuration...")
                             st.info("📄 Applying print settings to generated Excel files...")
                             total_files_processed = 0
                             total_sheets_processed = 0
-                            
+
                             for excel_file in generated_files:
                                 try:
-                                    print(f"DEBUG: Processing 2nd layer file: {excel_file}")
-                                    print(f"DEBUG: File exists: {excel_file.exists()}")
-                                    print(f"DEBUG: File size before processing: {excel_file.stat().st_size} bytes")
-                                    
                                     wb = openpyxl.load_workbook(excel_file, read_only=False)
-                                    print(f"DEBUG: Workbook loaded with {len(wb.sheetnames)} sheets: {wb.sheetnames}")
-                                    
+
                                     # Apply print area configuration to ALL worksheets
                                     config = PrintAreaConfig()
                                     sheets_processed = []
-                                    
+
                                     for sheet_name in wb.sheetnames:
                                         try:
                                             ws = wb[sheet_name]
                                             # Skip hidden sheets
                                             if ws.sheet_state != 'visible':
-                                                print(f"DEBUG: Skipping hidden sheet: {sheet_name}")
                                                 continue
-                                            
-                                            print(f"DEBUG: Applying print area to sheet: {sheet_name}")
-                                            original_print_area = ws.print_area
+
                                             config.configure_print_settings(ws)
-                                            new_print_area = ws.print_area
-                                            print(f"DEBUG: Sheet {sheet_name} - Original: {original_print_area}, New: {new_print_area}")
                                             sheets_processed.append(sheet_name)
                                         except Exception as sheet_error:
-                                            print(f"DEBUG: Failed to apply print area to sheet {sheet_name}: {sheet_error}")
                                             continue
-                                    
+
                                     wb.save(excel_file)
                                     wb.close()
-                                    
+
                                     # Additional delay to ensure save is complete
                                     import time
                                     time.sleep(0.2)
-                                    
-                                    print(f"DEBUG: File size after save: {excel_file.stat().st_size} bytes")
-                                    print(f"DEBUG: Successfully applied print area to sheets: {sheets_processed}")
-                                    
+
                                     total_files_processed += 1
                                     total_sheets_processed += len(sheets_processed)
-                                    
-                                    # Verify the settings were applied to the first sheet
-                                    wb_verify = openpyxl.load_workbook(excel_file, read_only=False)
-                                    ws_verify = wb_verify.active  # Verify on active sheet
-                                    print_area = ws_verify.print_area
-                                    paper_size = ws_verify.page_setup.paperSize
-                                    margins = f"{ws_verify.page_margins.left}, {ws_verify.page_margins.right}"
-                                    centering = ws_verify.print_options.horizontalCentered
-                                    view = ws_verify.sheet_view.view
-                                    wb_verify.close()
-                                    
-                                    print(f"DEBUG: Final verification - Print area: {print_area}, Paper: {paper_size}, View: {view}")
-                                    
+
                                     st.info(f"✅ Print settings applied to {excel_file.name} ({len(sheets_processed)} sheets)")
-                                    st.write(f"📄 Print area: {print_area}, Paper: A4, Margins: {margins}, Centering: {centering}, View: {view}")
                                 except Exception as print_error:
                                     st.error(f"❌ Failed to apply print settings to {excel_file.name}: {print_error}")
-                                    st.exception(print_error)
-                            
+
                             st.success(f"📄 **Print Settings Applied:** A4 paper, 0.1\" margins, horizontal centering, page break preview enabled to {total_files_processed} files ({total_sheets_processed} total sheets)")
                         
                         # Additional delay before zipping to ensure all file operations are complete

@@ -504,7 +504,7 @@ with tab3:
     with col1:
         activity_type_filter = st.selectbox(
             "Filter by Activity Type",
-            ["All", "DATA_VERIFICATION", "DATA_AMENDMENT", "INVOICE_EDIT", "INVOICE_VOID", "INVOICE_REACTIVATE", "INVOICE_DELETE", "USER_CREATED"],
+            ["All", "DATA_VERIFICATION", "DATA_AMENDMENT", "INVOICE_EDIT", "INVOICE_VOID", "INVOICE_REACTIVATE", "INVOICE_DELETE", "USER_CREATED", "TEMPLATE_ANALYSIS", "TEMPLATE_CREATED", "MAPPING_UPDATED"],
             key="activity_type_filter"
         )
     

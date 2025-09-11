@@ -9,6 +9,7 @@ import time
 import subprocess
 import json
 import shutil
+from login import log_business_activity
 
 # --- Authentication ---
 user_info = setup_page_auth(
@@ -237,7 +238,20 @@ if invoice_template_file:
                 st.session_state['analysis_complete'] = True
                 st.session_state['original_file_bytes_for_template'] = file_bytes # Store for final step
             
-            st.success("Analysis complete!")
+            # Log successful template analysis
+            try:
+                log_business_activity(
+                    user_id=user_info['user_id'],
+                    username=user_info['username'],
+                    activity_type='TEMPLATE_ANALYSIS',
+                    description=f"Analyzed Excel file: {file_name}",
+                    action_description=f"Analyzed invoice template from '{file_name}', found {len(missing_headers)} unmapped headers",
+                    success=True
+                )
+            except Exception as e:
+                st.warning(f"Activity logging failed: {e}")
+            
+            st.success("Analysis complete! Please proceed to the next step.")
             st.rerun()
 
         except Exception as e:
@@ -312,6 +326,19 @@ if invoice_template_file:
                     if not update_mapping_config(user_mappings):
                         st.error("Failed to update the master mapping configuration. Aborting.")
                         st.stop()
+                    
+                    # Log mapping update activity
+                    try:
+                        log_business_activity(
+                            user_id=user_info['user_id'],
+                            username=user_info['username'],
+                            activity_type='MAPPING_UPDATED',
+                            description=f"Updated header mappings for template {file_prefix} from file: {file_name}",
+                            action_description=f"Added {len(user_mappings)} new header mappings to global configuration from '{file_name}'",
+                            success=True
+                        )
+                    except Exception as e:
+                        st.warning(f"Activity logging failed: {e}")
                 
                 # 2. Define paths for the single, correct command.
                 temp_invoice_path = TEMP_DIR / file_name
@@ -349,6 +376,19 @@ if invoice_template_file:
                 # 5. Display success and clear state
                 st.success(f"Successfully created new template and configuration for `{file_prefix}`!")
                 st.balloons()
+                
+                # Log successful template creation
+                try:
+                    log_business_activity(
+                        user_id=user_info['user_id'],
+                        username=user_info['username'],
+                        activity_type='TEMPLATE_CREATED',
+                        description=f"Created new invoice template for {file_prefix} from file: {file_name}",
+                        action_description=f"Generated config file: {config_output_path.name}, Template file: {template_output_path.name} from '{file_name}'",
+                        success=True
+                    )
+                except Exception as e:
+                    st.warning(f"Activity logging failed: {e}")
                 
                 # Clean up session state
                 for key in ['analysis_path', 'missing_headers', 'analysis_complete', 'user_mappings', 'file_prefix', 'original_file_bytes_for_template']:

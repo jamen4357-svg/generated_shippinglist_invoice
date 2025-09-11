@@ -519,9 +519,11 @@ with tab3:
             "Days to look back",
             min_value=1,
             max_value=90,
-            value=7,
+            value=60,  # Changed to 60 days to capture historical DATA_VERIFICATION activities from August
             key="activity_days_filter"
         )
+    
+    st.info("💡 **Tip:** Use the 'Days to look back' filter above to view activities from different time periods. The default is now 60 days to show comprehensive historical data including older DATA_VERIFICATION activities.")
     
     # Get activity data
     try:

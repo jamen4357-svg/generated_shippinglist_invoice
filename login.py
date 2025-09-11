@@ -98,13 +98,17 @@ def verify_password(password, password_hash):
 def log_security_event(user_id, event_type, description, ip_address=None, user_agent=None):
     """Log a security event"""
     try:
+        # Get current time in Cambodia timezone
+        cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+        current_time = datetime.now(cambodia_tz).strftime('%Y-%m-%d %H:%M:%S')
+        
         conn = sqlite3.connect(USER_DB_PATH)
         cursor = conn.cursor()
         
         cursor.execute('''
-            INSERT INTO security_events (user_id, event_type, description, ip_address, user_agent)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (user_id, event_type, description, ip_address, user_agent))
+            INSERT INTO security_events (user_id, event_type, description, ip_address, user_agent, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (user_id, event_type, description, ip_address, user_agent, current_time))
         
         conn.commit()
         conn.close()
@@ -117,6 +121,16 @@ def log_business_activity(user_id, username, activity_type, target_invoice_ref=N
                          error_message=None, description=None):
     """Log a business activity"""
     try:
+        # Convert complex data types to JSON strings for SQLite storage
+        import json
+        
+        old_values_json = json.dumps(old_values) if old_values is not None else None
+        new_values_json = json.dumps(new_values) if new_values is not None else None
+        
+        # Get current time in Cambodia timezone
+        cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
+        current_time = datetime.now(cambodia_tz).strftime('%Y-%m-%d %H:%M:%S')
+        
         conn = sqlite3.connect(USER_DB_PATH)
         cursor = conn.cursor()
         
@@ -124,11 +138,11 @@ def log_business_activity(user_id, username, activity_type, target_invoice_ref=N
             INSERT INTO business_activities 
             (user_id, username, activity_type, target_invoice_ref, target_invoice_no, 
              action_description, old_values, new_values, ip_address, user_agent, 
-             success, error_message, description)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             success, error_message, description, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (user_id, username, activity_type, target_invoice_ref, target_invoice_no,
-              action_description, old_values, new_values, ip_address, user_agent,
-              success, error_message, description))
+              action_description, old_values_json, new_values_json, ip_address, user_agent,
+              success, error_message, description, current_time))
         
         conn.commit()
         conn.close()
@@ -547,7 +561,7 @@ def get_business_activities(limit=100, days_back=7, activity_type=None, username
                 ba.id, ba.user_id, ba.username, ba.activity_type, 
                 ba.target_invoice_ref, ba.target_invoice_no, ba.action_description,
                 ba.old_values, ba.new_values, ba.ip_address, ba.user_agent,
-                ba.success, ba.error_message, ba.timestamp, ba.description, ba.details
+                ba.success, ba.error_message, ba.timestamp, ba.description
             FROM business_activities ba
             WHERE ba.timestamp > datetime('now', '-{} days')
         '''.format(days_back)
@@ -576,11 +590,25 @@ def get_business_activities(limit=100, days_back=7, activity_type=None, username
         columns = ['id', 'user_id', 'username', 'activity_type', 'target_invoice_ref', 
                   'target_invoice_no', 'action_description', 'old_values', 'new_values',
                   'ip_address', 'user_agent', 'success', 'error_message', 'timestamp', 
-                  'description', 'details']
+                  'description']
         
         result = []
         for activity in activities:
             activity_dict = dict(zip(columns, activity))
+            
+            # Deserialize JSON data back to Python objects
+            import json
+            if activity_dict['old_values']:
+                try:
+                    activity_dict['old_values'] = json.loads(activity_dict['old_values'])
+                except:
+                    pass  # Keep as string if JSON parsing fails
+            if activity_dict['new_values']:
+                try:
+                    activity_dict['new_values'] = json.loads(activity_dict['new_values'])
+                except:
+                    pass  # Keep as string if JSON parsing fails
+            
             result.append(activity_dict)
         
         conn.close()

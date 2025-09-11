@@ -146,12 +146,12 @@ def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
         try:
             log_business_activity(
                 user_id=user_info['user_id'],
-                description=f"Amended invoice data - Replaced {len(existing_df)} records with {len(new_df)} new records",
+                description=f"Amended invoice data from file '{source_file_path.name}' - Replaced {len(existing_df)} records with {len(new_df)} new records",
                 activity_type='DATA_AMENDMENT',
                 username=user_info['username'],
                 target_invoice_ref=new_inv_ref,
                 target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
-                action_description=f"Amended invoice data - Replaced {len(existing_df)} records with {len(new_df)} new records",
+                action_description=f"Amended invoice data from '{source_file_path.name}' - Replaced {len(existing_df)} records with {len(new_df)} new records",
                 old_values=existing_df.to_dict('records')[:5],  # Store first 5 records as sample
                 new_values=new_df.to_dict('records')[:5],  # Store first 5 records as sample
                 success=True
@@ -183,12 +183,12 @@ def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
         try:
             log_business_activity(
                 user_id=user_info['user_id'],
-                description="Rejected amendment proposal",
+                description=f"Rejected amendment proposal from file '{source_file_path.name}'",
                 activity_type='DATA_AMENDMENT',
                 username=user_info['username'],
                 target_invoice_ref=new_df['inv_ref'].iloc[0] if 'inv_ref' in new_df.columns else None,
                 target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
-                action_description="Rejected amendment proposal",
+                action_description=f"Rejected amendment proposal from '{source_file_path.name}'",
                 old_values=existing_df.to_dict('records')[:5],
                 new_values=new_df.to_dict('records')[:5],
                 success=True
@@ -215,12 +215,12 @@ def handle_new_invoice(source_file_path, new_df, manual_containers):
         try:
             log_business_activity(
                 user_id=user_info['user_id'],
-                description=f"Verified and inserted new invoice - {len(new_df)} records added",
+                description=f"Verified and inserted new invoice from file '{source_file_path.name}' - {len(new_df)} records added",
                 activity_type='DATA_VERIFICATION',
                 username=user_info['username'],
                 target_invoice_ref=new_inv_ref,
                 target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
-                action_description=f"Verified and inserted new invoice - {len(new_df)} records added",
+                action_description=f"Verified and inserted new invoice from '{source_file_path.name}' - {len(new_df)} records added",
                 new_values=new_df.to_dict('records')[:5],  # Store first 5 records as sample
                 success=True
             )
@@ -246,12 +246,12 @@ def handle_new_invoice(source_file_path, new_df, manual_containers):
         try:
             log_business_activity(
                 user_id=user_info['user_id'],
-                description="Rejected new invoice proposal",
+                description=f"Rejected new invoice proposal from file '{source_file_path.name}'",
                 activity_type='DATA_VERIFICATION',
                 username=user_info['username'],
                 target_invoice_ref=new_inv_ref,
                 target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
-                action_description="Rejected new invoice proposal",
+                action_description=f"Rejected new invoice proposal from '{source_file_path.name}'",
                 new_values=new_df.to_dict('records')[:5],
                 success=True
             )
@@ -297,6 +297,20 @@ except Exception as e:
     failed_file_path = FAILED_DIRECTORY / file_to_process.name
     st.warning("This file will be moved to the `failed_invoices` folder.")
     if st.button("Move File and Continue ➡️", use_container_width=True, key="continue_after_error"):
+        # Log the failed file processing
+        try:
+            log_business_activity(
+                user_id=user_info['user_id'],
+                username=user_info['username'],
+                activity_type='DATA_VERIFICATION',
+                description=f"Failed to process invoice file '{file_to_process.name}' - moved to failed folder",
+                action_description=f"File processing failed for '{file_to_process.name}' due to: {str(e)}",
+                success=False,
+                error_message=str(e)
+            )
+        except Exception as log_e:
+            st.warning(f"Activity logging failed: {log_e}")
+        
         shutil.move(str(file_to_process), str(failed_file_path))
         st.success(f"File '{file_to_process.name}' moved. Loading next file...")
         time.sleep(2)

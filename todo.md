@@ -7,11 +7,17 @@
 - activity monitor, we need it to be working again
     + track register new company
     + track verify data to insert
+    + track invoice explorerer page
 - storage manger, mangage all the data inside of the database related to security, actitities logs, only admin at the dashboard can do, usermanagement at user action
 
 
 ## prompt for acitity monitor
-you are fixing the activity log for the admin dashboard at the actitity monitor, you before you make change, you will take a look at it database and take that schema work around with it without creating new schema confuse the current structure. current task: track invoice explorerer page
+you are fixing the activity log for the admin dashboard at the actitity monitor, you before you make change, you will take a look at it database and take that schema work around with it without creating new schema confuse the current structure. current task: 
 ## activity note
 - timezone tracking base on cambodia, server need to use cambodia time zone 
+
+#### Accurate number format tracker
+
+
+implement the new algorithem that doesnt care about space when it come to serach with the fob fca
 

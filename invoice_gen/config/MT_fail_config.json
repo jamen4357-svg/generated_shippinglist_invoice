@@ -11,7 +11,7 @@
   },
   "data_mapping": {
     "Invoice": {
-      "start_row": 20,
+      "start_row": 21,
       "add_blank_before_footer": false,
       "static_content_before_footer": {
         "2": "LEATHER (HS.CODE: 4107.12.00)"
@@ -28,7 +28,7 @@
         {
           "row": 0,
           "col": 1,
-          "text": "FAIL HEADER",
+          "text": "P.O. Nº",
           "id": "col_po",
           "rowspan": 1,
           "colspan": 1
@@ -52,7 +52,7 @@
         {
           "row": 0,
           "col": 4,
-          "text": "Quantity",
+          "text": "Quantity\n(SF)",
           "id": "col_qty_sf",
           "rowspan": 1,
           "colspan": 1
@@ -60,7 +60,7 @@
         {
           "row": 0,
           "col": 5,
-          "text": "Unit price (USD)",
+          "text": "Unit Price\n(USD)",
           "id": "col_unit_price",
           "rowspan": 1,
           "colspan": 1
@@ -68,7 +68,7 @@
         {
           "row": 0,
           "col": 6,
-          "text": "Amount (USD)",
+          "text": "Amount(USD)",
           "id": "col_amount",
           "rowspan": 1,
           "colspan": 1
@@ -132,7 +132,7 @@
         "comment": "This is the TEMPLATE for the main total row and the Grand Total row.",
         "total_text": "TOTAL OF:",
         "total_text_column_id": 1,
-        "pallet_count_column_id": 3,
+        "pallet_count_column_id": 2,
         "sum_column_ids": [
           "col_qty_pcs",
           "col_qty_sf",
@@ -241,46 +241,70 @@
         },
         "number_formats": {
           "col_item": "@",
-          "col_unit_price": "#,##0.00",
-          "col_amount": "#,##0.00",
-          "col_qty_sf": "#,##0.00"
+          "col_unit_price": "#,##0.0000",
+          "col_amount": "#,##0.0000",
+          "col_qty_sf": "#,##0.0000"
         }
       }
     },
     "Contract": {
-      "start_row": 11,
+      "start_row": 15,
       "header_to_write": [
         {
           "row": 0,
           "col": 0,
-          "text": "Description of Goods.",
-          "id": "col_po",
-          "rowspan": 1,
-          "colspan": 6
-        },
-        {
-          "row": 0,
-          "col": 6,
-          "text": "Unit Price",
-          "id": "col_unit_price",
+          "text": "No.",
+          "id": "col_no",
           "rowspan": 1,
           "colspan": 1
         },
         {
           "row": 0,
-          "col": 7,
-          "text": "Quantity(SF)",
+          "col": 1,
+          "text": "P.O. Nº",
+          "id": "col_po",
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "text": "Name of\nCormodity",
+          "id": "col_item",
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "text": "Description",
+          "id": "col_desc",
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "text": "Quantity\n(SF)",
           "id": "col_qty_sf",
           "rowspan": 1,
           "colspan": 1
         },
         {
           "row": 0,
-          "col": 8,
-          "text": "Amount(USD)",
+          "col": 5,
+          "text": "Unit Price\n(USD)",
+          "id": "col_unit_price",
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 6,
+          "text": "Total value\n(USD)",
           "id": "col_amount",
           "rowspan": 1,
-          "colspan": 2
+          "colspan": 1
         }
       ],
       "mappings": {
@@ -317,7 +341,7 @@
       },
       "footer_configurations": {
         "comment": "This is the TEMPLATE for the main total row and the Grand Total row.",
-        "total_text": "TOTAL OF:",
+        "total_text": "TOTAL:",
         "total_text_column_id": 0,
         "sum_column_ids": [
           "col_qty_pcs",
@@ -330,7 +354,7 @@
         "style": {
           "font": {
             "name": "Times New Roman",
-            "size": 8.0,
+            "size": 16.0,
             "bold": true
           },
           "alignment": {
@@ -364,10 +388,6 @@
         "merge_rules": [
           {
             "start_column_id": 0,
-            "colspan": 6
-          },
-          {
-            "start_column_id": 8,
             "colspan": 2
           }
         ]
@@ -389,11 +409,11 @@
         ],
         "default_font": {
           "name": "Times New Roman",
-          "size": 8.0
+          "size": 14.0
         },
         "header_font": {
           "name": "Times New Roman",
-          "size": 8.0,
+          "size": 16.0,
           "bold": true
         },
         "default_alignment": {
@@ -430,14 +450,14 @@
           "col_amount": 47
         },
         "row_heights": {
-          "header": 13.1,
-          "data_default": 15.0,
-          "footer": 13.1
+          "header": 39.0,
+          "data_default": 35.2,
+          "footer": 36.0
         },
         "number_formats": {
-          "col_unit_price": "#,##0.00",
-          "col_amount": "#,##0.00",
-          "col_qty_sf": "#,##0.00"
+          "col_unit_price": "#,##0.0000",
+          "col_amount": "#,##0.0000",
+          "col_qty_sf": "#,##0.0000"
         }
       },
       "data_cell_merging_rule": {
@@ -446,17 +466,11 @@
         },
         "col_specification": {
           "rowspan": 1
-        },
-        "col_po": {
-          "rowspan": 6
-        },
-        "col_amount": {
-          "rowspan": 2
         }
       }
     },
     "Packing list": {
-      "start_row": 19,
+      "start_row": 20,
       "add_blank_before_footer": true,
       "static_content_before_footer": {
         "2": "LEATHER (HS.CODE: 4107.12.00)"
@@ -477,6 +491,14 @@
         {
           "row": 0,
           "col": 1,
+          "text": "PALLET\nNO.",
+          "id": "col_pallet",
+          "rowspan": 2,
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 2,
           "text": "P.O Nº",
           "id": "col_po",
           "rowspan": 2,
@@ -484,7 +506,7 @@
         },
         {
           "row": 0,
-          "col": 2,
+          "col": 3,
           "text": "ITEM Nº",
           "id": "col_item",
           "rowspan": 2,
@@ -492,7 +514,7 @@
         },
         {
           "row": 0,
-          "col": 3,
+          "col": 4,
           "text": "Description",
           "id": "col_desc",
           "rowspan": 2,
@@ -500,13 +522,13 @@
         },
         {
           "row": 0,
-          "col": 4,
+          "col": 5,
           "text": "Quantity",
           "colspan": 2
         },
         {
           "row": 0,
-          "col": 6,
+          "col": 7,
           "text": "N.W (kgs)",
           "id": "col_net",
           "rowspan": 2,
@@ -514,7 +536,7 @@
         },
         {
           "row": 0,
-          "col": 7,
+          "col": 8,
           "text": "G.W (kgs)",
           "id": "col_gross",
           "rowspan": 2,
@@ -522,7 +544,7 @@
         },
         {
           "row": 0,
-          "col": 8,
+          "col": 9,
           "text": "CBM",
           "id": "col_cbm",
           "rowspan": 2,
@@ -530,7 +552,7 @@
         },
         {
           "row": 1,
-          "col": 4,
+          "col": 5,
           "text": "PCS",
           "id": "col_qty_pcs",
           "colspan": 1,
@@ -538,7 +560,7 @@
         },
         {
           "row": 1,
-          "col": 5,
+          "col": 6,
           "text": "SF",
           "id": "col_qty_sf",
           "colspan": 1,
@@ -589,9 +611,9 @@
       },
       "footer_configurations": {
         "comment": "This is the TEMPLATE for the main total row and the Grand Total row.",
-        "total_text": "TOTAL OF:",
+        "total_text": "TOTAL:",
         "total_text_column_id": 1,
-        "pallet_count_column_id": 3,
+        "pallet_count_column_id": 2,
         "sum_column_ids": [
           "col_qty_pcs",
           "col_qty_sf",

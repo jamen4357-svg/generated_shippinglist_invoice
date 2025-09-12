@@ -153,11 +153,15 @@ def check_authentication():
     """Check if user is authenticated and return user info"""
     # Initialize database if it doesn't exist
     init_user_database()
-    
+
     # Check if user is logged in via session state
-    if 'user_info' in st.session_state:
-        return st.session_state['user_info']
-    
+    try:
+        if 'user_info' in st.session_state:
+            return st.session_state['user_info']
+    except:
+        # Handle case when running outside of Streamlit
+        pass
+
     return None
 
 def authenticate_user(username, password):

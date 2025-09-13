@@ -866,7 +866,8 @@ def main():
                                 pallet_count=grand_total_pallets_for_summary_row,
                                 override_total_text="TOTAL OF:",
                                 grand_total_flag=True,
-                                fob_mode=args.fob
+                                fob_mode=args.fob,
+                                sheet_styling_config=sheet_styling_config
                             )
 
                             if footer_row_index != -1:

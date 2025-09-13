@@ -21,3 +21,10 @@ you are fixing the activity log for the admin dashboard at the actitity monitor,
 
 implement the new algorithem that doesnt care about space when it come to serach with the fob fca
 
+
+
+
+
+## Todo
+adding a description fallback extractor 
+download 

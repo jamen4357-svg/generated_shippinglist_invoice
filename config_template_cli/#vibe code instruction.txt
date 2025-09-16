@@ -1,0 +1,2 @@
+#vibe code instruction
+- test file will belong in their own dir, can be at any dir in our main dir, but it must be in the word test, or if debug, will place in their own dir call debug. we must make the codebase clean,

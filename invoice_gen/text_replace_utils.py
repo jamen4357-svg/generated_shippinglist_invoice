@@ -219,33 +219,33 @@ def run_invoice_header_replacement_task(workbook: openpyxl.Workbook, invoice_dat
     )
     print("--- Finished Invoice Header Replacement Task ---")
 
-def run_fob_specific_replacement_task(workbook: openpyxl.Workbook):
-    """Defines and runs the hardcoded, FOB-specific replacement task."""
-    print("\n--- Running FOB-Specific Replacement Task (within 50x16 grid) ---")
-    fob_rules = [
+def run_DAF_specific_replacement_task(workbook: openpyxl.Workbook):
+    """Defines and runs the hardcoded, DAF-specific replacement task."""
+    print("\n--- Running DAF-Specific Replacement Task (within 50x16 grid) ---")
+    DAF_rules = [
         {"find": "BINH PHUOC", "replace": "BAVET", "match_mode": "exact"},
         {"find": "BAVET, SVAY RIENG", "replace": "BAVET", "match_mode": "exact"},
         {"find": "BAVET,SVAY RIENG", "replace": "BAVET", "match_mode": "exact"},
         {"find": "BAVET, SVAYRIENG", "replace": "BAVET", "match_mode": "exact"},
         {"find": "BINH DUONG", "replace": "BAVET", "match_mode": "exact"},
-        {"find": "FCA  BAVET,SVAYRIENG", "replace": "FOB BAVET", "match_mode": "exact"},
-        {"find": "FCA: BAVET,SVAYRIENG", "replace": "FOB: BAVET", "match_mode": "exact"},
-        {"find": "FOB  BAVET,SVAYRIENG", "replace": "FOB BAVET", "match_mode": "exact"},
-        {"find": "FOB: BAVET,SVAYRIENG", "replace": "FOB: BAVET", "match_mode": "exact"},
+        {"find": "FCA  BAVET,SVAYRIENG", "replace": "DAF BAVET", "match_mode": "exact"},
+        {"find": "FCA: BAVET,SVAYRIENG", "replace": "DAF: BAVET", "match_mode": "exact"},
+        {"find": "DAF  BAVET,SVAYRIENG", "replace": "DAF BAVET", "match_mode": "exact"},
+        {"find": "DAF: BAVET,SVAYRIENG", "replace": "DAF: BAVET", "match_mode": "exact"},
         {"find": "SVAY RIENG", "replace": "BAVET", "match_mode": "exact"},
         {"find": "PORT KLANG", "replace": "BAVET", "match_mode": "exact"},
         {"find": "HCM", "replace": "BAVET", "match_mode": "exact"},
-        {"find": "DAP", "replace": "FOB", "match_mode": "substring"},
-        {"find": "FCA", "replace": "FOB", "match_mode": "substring"},
-        {"find": "CIF", "replace": "FOB", "match_mode": "substring"},
+        {"find": "DAP", "replace": "DAF", "match_mode": "substring"},
+        {"find": "FCA", "replace": "DAF", "match_mode": "substring"},
+        {"find": "CIF", "replace": "DAF", "match_mode": "substring"},
     ]
     find_and_replace(
         workbook=workbook,
-        rules=fob_rules,
+        rules=DAF_rules,
         limit_rows=200,
         limit_cols=16
     )
-    print("--- Finished FOB-Specific Replacement Task ---")
+    print("--- Finished DAF-Specific Replacement Task ---")
 
 # ==============================================================================
 # EXAMPLE USAGE (for demonstration purposes)
@@ -288,7 +288,7 @@ if __name__ == '__main__':
 
     # Run the replacement tasks
     run_invoice_header_replacement_task(wb, mock_invoice_data)
-    run_fob_specific_replacement_task(wb)
+    run_DAF_specific_replacement_task(wb)
 
     # Save the workbook to see the result
     output_filename = "invoice_output.xlsx"
@@ -296,5 +296,5 @@ if __name__ == '__main__':
 
     print(f"\nProcessing complete. Check the output file: {output_filename}")
     print(f"Cell B2 should now contain the date '11/05/2025' and be formatted as a date in Excel.")
-    print(f"Cell B3 should now contain 'FOB Port'.")
+    print(f"Cell B3 should now contain 'DAF Port'.")
     print(f"Cell B5 should now contain 'BAVET'.")

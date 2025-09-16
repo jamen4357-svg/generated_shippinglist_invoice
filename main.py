@@ -96,7 +96,7 @@ def main():
         type=str,
         default=None
     )
-    parser.add_argument("--fob", action="store_true", help="Only generate the FOB version of the invoice.")
+    parser.add_argument("--DAF", action="store_true", help="Only generate the DAF version of the invoice.")
     parser.add_argument("--custom", action="store_true", help="Only generate the CUSTOM version of the invoice.")
 
     args = parser.parse_args()
@@ -193,12 +193,12 @@ def main():
 
     # --- Step 4: Run invoice_gen/generate_invoice.py for each mode ---
     active_modes = []
-    if args.fob:
-        active_modes.append(("fob", ["--fob"]))
+    if args.DAF:
+        active_modes.append(("DAF", ["--DAF"]))
     if args.custom:
         active_modes.append(("custom", ["--custom"]))
     if not active_modes:
-        active_modes = [("normal", []), ("fob", ["--fob"]), ("custom", ["--custom"])]
+        active_modes = [("normal", []), ("DAF", ["--DAF"]), ("custom", ["--custom"])]
 
     all_successful_invoice_generations = True
     generated_files_info = []

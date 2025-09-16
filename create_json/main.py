@@ -42,10 +42,10 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 # --- Constants for Log Truncation ---
 MAX_LOG_DICT_LEN = 3000 # Max length for printing large dicts in logs (for DEBUG)
 
-# --- Constants for FOB Compounding Formatting ---
-FOB_CHUNK_SIZE = 2  # How many items per group (e.g., PO1\\PO2)
-FOB_INTRA_CHUNK_SEPARATOR = "/"  # Separator within a group (e.g., DOUBLE BACKSLASH)
-FOB_INTER_CHUNK_SEPARATOR = "\n"  # Separator between groups (e.g., newline)
+# --- Constants for DAF Compounding Formatting ---
+DAF_CHUNK_SIZE = 2  # How many items per group (e.g., PO1\\PO2)
+DAF_INTRA_CHUNK_SEPARATOR = "/"  # Separator within a group (e.g., DOUBLE BACKSLASH)
+DAF_INTER_CHUNK_SEPARATOR = "\n"  # Separator between groups (e.g., newline)
 
 # Type alias for the two possible initial aggregation structures
 # UPDATED Type Alias to reflect new key structures
@@ -53,24 +53,24 @@ InitialAggregationResults = Union[
     Dict[Tuple[Any, Any, Optional[decimal.Decimal], Optional[str]], Dict[str, decimal.Decimal]], # Standard Result (PO, Item, Price, Desc)
     Dict[Tuple[Any, Any, Optional[str], None], Dict[str, decimal.Decimal]]                             # Custom Result (PO, Item, Desc, None) - UPDATED
 ]
-# Type alias for the FOB compounding result structure
-FobCompoundingResult = Dict[str, Union[str, decimal.Decimal]]
+# Type alias for the DAF compounding result structure
+DAFCompoundingResult = Dict[str, Union[str, decimal.Decimal]]
 
-# Type alias for the final FOB result (ALWAYS a split dict, but structure varies)
-FinalFobResultType = Dict[str, FobCompoundingResult]
+# Type alias for the final DAF result (ALWAYS a split dict, but structure varies)
+FinalDAFResultType = Dict[str, DAFCompoundingResult]
 
 
-# *** FOB Compounding Function with Chunking ***
-def perform_fob_compounding(
+# *** DAF Compounding Function with Chunking ***
+def perform_DAF_compounding(
     initial_results: InitialAggregationResults, # Type hint updated
     aggregation_mode: str # 'standard' or 'custom' -> Needed to parse input keys correctly
-) -> Optional[FinalFobResultType]: # <<< Return type is always Dict[str, ...]
+) -> Optional[FinalDAFResultType]: # <<< Return type is always Dict[str, ...]
     """
-    Performs FOB Compounding from standard or custom aggregation results.
+    Performs DAF Compounding from standard or custom aggregation results.
     - If description data IS present: Performs BUFFALO split (Groups "1" & "2").
-      Uses FOB_CHUNK_SIZE=2 and FOB_INTRA_CHUNK_SEPARATOR='\\'.
+      Uses DAF_CHUNK_SIZE=2 and DAF_INTRA_CHUNK_SEPARATOR='\\'.
     - If description data IS NOT present: Performs PO Count split (Groups "1", "2", ...).
-      Uses NO_DESC_SPLIT_CHUNK_SIZE=8 and FOB_INTRA_CHUNK_SEPARATOR='\\'.
+      Uses NO_DESC_SPLIT_CHUNK_SIZE=8 and DAF_INTRA_CHUNK_SEPARATOR='\\'.
       Calculates chunk-specific totals.
 
     Args:
@@ -81,11 +81,11 @@ def perform_fob_compounding(
         - Default structure (empty groups "1", "2") if input is empty.
         - None on critical internal errors.
     """
-    prefix = "[perform_fob_compounding]"
-    logging.info(f"{prefix} Starting FOB Compounding. Checking for descriptions to determine split type.")
+    prefix = "[perform_DAF_compounding]"
+    logging.info(f"{prefix} Starting DAF Compounding. Checking for descriptions to determine split type.")
 
     # Helper function for creating a default empty group result
-    def default_group_result() -> FobCompoundingResult:
+    def default_group_result() -> DAFCompoundingResult:
         return {
             'combined_po': '',
             'combined_item': '',
@@ -96,7 +96,7 @@ def perform_fob_compounding(
 
     # Handle empty input consistently -> returns default BUFFALO split dict
     if not initial_results:
-        logging.warning(f"{prefix} Input aggregation results map is empty. Returning default empty FOB groups.")
+        logging.warning(f"{prefix} Input aggregation results map is empty. Returning default empty DAF groups.")
         return {
             "1": default_group_result(), # Buffalo group
             "2": default_group_result()  # Non-Buffalo group
@@ -133,7 +133,7 @@ def perform_fob_compounding(
 
     if any_description_present:
         # --- Path 1: Descriptions ARE present -> BUFFALO Split Aggregation (Chunk Size 2) ---
-        logging.info(f"{prefix} Performing BUFFALO split aggregation (Chunk Size: {FOB_CHUNK_SIZE}).")
+        logging.info(f"{prefix} Performing BUFFALO split aggregation (Chunk Size: {DAF_CHUNK_SIZE}).")
         # Initialize accumulators for BUFFALO group ("1")
         buffalo_pos = set()
         buffalo_items = set()
@@ -195,9 +195,9 @@ def perform_fob_compounding(
         sorted_buffalo_pos = sorted(list(buffalo_pos))
         sorted_buffalo_items = sorted(list(buffalo_items))
         sorted_buffalo_descriptions = sorted([d for d in buffalo_descriptions if d])
-        buffalo_result: FobCompoundingResult = {
-            'combined_po': format_chunks(sorted_buffalo_pos, FOB_CHUNK_SIZE, FOB_INTRA_CHUNK_SEPARATOR, FOB_INTER_CHUNK_SEPARATOR),
-            'combined_item': format_chunks(sorted_buffalo_items, FOB_CHUNK_SIZE, FOB_INTRA_CHUNK_SEPARATOR, FOB_INTER_CHUNK_SEPARATOR),
+        buffalo_result: DAFCompoundingResult = {
+            'combined_po': format_chunks(sorted_buffalo_pos, DAF_CHUNK_SIZE, DAF_INTRA_CHUNK_SEPARATOR, DAF_INTER_CHUNK_SEPARATOR),
+            'combined_item': format_chunks(sorted_buffalo_items, DAF_CHUNK_SIZE, DAF_INTRA_CHUNK_SEPARATOR, DAF_INTER_CHUNK_SEPARATOR),
             'combined_description': format_chunks(sorted_buffalo_descriptions, 1, "", "\n"),
             'total_sqft': buffalo_sqft,
             'total_amount': buffalo_amount
@@ -206,19 +206,19 @@ def perform_fob_compounding(
         sorted_non_buffalo_pos = sorted(list(non_buffalo_pos))
         sorted_non_buffalo_items = sorted(list(non_buffalo_items))
         sorted_non_buffalo_descriptions = sorted([d for d in non_buffalo_descriptions if d])
-        non_buffalo_result: FobCompoundingResult = {
-            'combined_po': format_chunks(sorted_non_buffalo_pos, FOB_CHUNK_SIZE, FOB_INTRA_CHUNK_SEPARATOR, FOB_INTER_CHUNK_SEPARATOR),
-            'combined_item': format_chunks(sorted_non_buffalo_items, FOB_CHUNK_SIZE, FOB_INTRA_CHUNK_SEPARATOR, FOB_INTER_CHUNK_SEPARATOR),
+        non_buffalo_result: DAFCompoundingResult = {
+            'combined_po': format_chunks(sorted_non_buffalo_pos, DAF_CHUNK_SIZE, DAF_INTRA_CHUNK_SEPARATOR, DAF_INTER_CHUNK_SEPARATOR),
+            'combined_item': format_chunks(sorted_non_buffalo_items, DAF_CHUNK_SIZE, DAF_INTRA_CHUNK_SEPARATOR, DAF_INTER_CHUNK_SEPARATOR),
             'combined_description': format_chunks(sorted_non_buffalo_descriptions, 1, "", "\n"),
             'total_sqft': non_buffalo_sqft,
             'total_amount': non_buffalo_amount
         }
         # Construct Final Result Dictionary for BUFFALO Split Case
-        final_buffalo_split_result: FinalFobResultType = {
+        final_buffalo_split_result: FinalDAFResultType = {
             "1": buffalo_result,
             "2": non_buffalo_result
         }
-        logging.info(f"{prefix} BUFFALO split FOB Compounding complete.")
+        logging.info(f"{prefix} BUFFALO split DAF Compounding complete.")
         return final_buffalo_split_result
         # --- End Path 1 (BUFFALO Split) --- #
 
@@ -229,7 +229,7 @@ def perform_fob_compounding(
         PO_GROUPING_FOR_TOTALS = 5 # Define the size for grouping totals
         logging.info(f"{prefix} No description data found. Performing PO count split aggregation.")
         logging.info(f"{prefix}   - Totals calculated per group of {PO_GROUPING_FOR_TOTALS} POs.")
-        logging.info(f"{prefix}   - String formatting uses chunk size {FOB_CHUNK_SIZE} and separator '{FOB_INTRA_CHUNK_SEPARATOR}'.")
+        logging.info(f"{prefix}   - String formatting uses chunk size {DAF_CHUNK_SIZE} and separator '{DAF_INTRA_CHUNK_SEPARATOR}'.")
 
         # Step 1: Aggregate data by PO
         po_data_aggregation: Dict[str, Dict[str, Union[set, decimal.Decimal]]] = {}
@@ -262,7 +262,7 @@ def perform_fob_compounding(
         sorted_pos = sorted(list(po_data_aggregation.keys()))
 
         # Step 3: Iterate through POs in conceptual groups of 8 for total calculation
-        final_po_count_split_result: FinalFobResultType = {}
+        final_po_count_split_result: FinalDAFResultType = {}
         # Calculate number of output chunks based on the total grouping size
         num_conceptual_chunks = (len(sorted_pos) + PO_GROUPING_FOR_TOTALS - 1) // PO_GROUPING_FOR_TOTALS
 
@@ -296,24 +296,24 @@ def perform_fob_compounding(
             # Step 4: Format the collected POs and Items using desired format (size 2)
             # --- Add Debugging --- 
             logging.debug(f"{prefix} Chunk {i+1}: Formatting POs. Input list ({len(po_list_for_formatting)} items): {po_list_for_formatting}")
-            logging.debug(f"{prefix} Chunk {i+1}: PO Format Params: size={FOB_CHUNK_SIZE}, intra='{FOB_INTRA_CHUNK_SEPARATOR}', inter={repr(FOB_INTER_CHUNK_SEPARATOR)}")
+            logging.debug(f"{prefix} Chunk {i+1}: PO Format Params: size={DAF_CHUNK_SIZE}, intra='{DAF_INTRA_CHUNK_SEPARATOR}', inter={repr(DAF_INTER_CHUNK_SEPARATOR)}")
             # --- End Debugging --- 
-            formatted_po_chunk = format_chunks(po_list_for_formatting, FOB_CHUNK_SIZE, FOB_INTRA_CHUNK_SEPARATOR, FOB_INTER_CHUNK_SEPARATOR)
+            formatted_po_chunk = format_chunks(po_list_for_formatting, DAF_CHUNK_SIZE, DAF_INTRA_CHUNK_SEPARATOR, DAF_INTER_CHUNK_SEPARATOR)
             # --- Add Debugging --- 
             logging.debug(f"{prefix} Chunk {i+1}: Formatted POs Result: {repr(formatted_po_chunk)}")
             # --- End Debugging --- 
 
             # --- Add Debugging --- 
             logging.debug(f"{prefix} Chunk {i+1}: Formatting Items. Input list ({len(sorted_chunk_items)} items): {sorted_chunk_items}")
-            logging.debug(f"{prefix} Chunk {i+1}: Item Format Params: size={FOB_CHUNK_SIZE}, intra='{FOB_INTRA_CHUNK_SEPARATOR}', inter={repr(FOB_INTER_CHUNK_SEPARATOR)}")
+            logging.debug(f"{prefix} Chunk {i+1}: Item Format Params: size={DAF_CHUNK_SIZE}, intra='{DAF_INTRA_CHUNK_SEPARATOR}', inter={repr(DAF_INTER_CHUNK_SEPARATOR)}")
             # --- End Debugging --- 
-            formatted_item_chunk = format_chunks(sorted_chunk_items, FOB_CHUNK_SIZE, FOB_INTRA_CHUNK_SEPARATOR, FOB_INTER_CHUNK_SEPARATOR)
+            formatted_item_chunk = format_chunks(sorted_chunk_items, DAF_CHUNK_SIZE, DAF_INTRA_CHUNK_SEPARATOR, DAF_INTER_CHUNK_SEPARATOR)
             # --- Add Debugging --- 
             logging.debug(f"{prefix} Chunk {i+1}: Formatted Items Result: {repr(formatted_item_chunk)}")
             # --- End Debugging --- 
 
             # Create the result dictionary for this chunk index
-            chunk_result: FobCompoundingResult = {
+            chunk_result: DAFCompoundingResult = {
                 'combined_po': formatted_po_chunk,
                 'combined_item': formatted_item_chunk,
                 'combined_description': '', # No descriptions in this path
@@ -324,7 +324,7 @@ def perform_fob_compounding(
             final_po_count_split_result[chunk_index_str] = chunk_result
             logging.debug(f"{prefix} Created output chunk {chunk_index_str}: {len(conceptual_po_chunk)} POs contributed totals, SQFT={chunk_sqft_total}, Amount={chunk_amount_total}")
 
-        logging.info(f"{prefix} PO count split FOB Compounding complete ({len(final_po_count_split_result)} chunks created).")
+        logging.info(f"{prefix} PO count split DAF Compounding complete ({len(final_po_count_split_result)} chunks created).")
         return final_po_count_split_result
         # --- End Path 2 (PO Count Split) --- #
 
@@ -437,16 +437,16 @@ def run_invoice_automation(input_excel_override: Optional[str] = None, output_di
     # Global dictionaries for initial aggregation results
     global_standard_aggregation_results: Dict[Tuple[Any, Any, Optional[decimal.Decimal], Optional[str]], Dict[str, decimal.Decimal]] = {}
     global_custom_aggregation_results: Dict[Tuple[Any, Any, Optional[str], None], Dict[str, decimal.Decimal]] = {}
-    # Global variable for the final FOB compounded result -> Type updated
-    global_fob_compounded_result: Optional[FinalFobResultType] = None
+    # Global variable for the final DAF compounded result -> Type updated
+    global_DAF_compounded_result: Optional[FinalDAFResultType] = None
 
-    aggregation_mode_used = "standard" # Default, determines WHICH aggregation feeds FOB
+    aggregation_mode_used = "standard" # Default, determines WHICH aggregation feeds DAF
 
     # --- Determine Initial Aggregation Strategy (based on the ACTUAL input filename) ---
-    use_custom_aggregation_for_fob = False # Determines which map feeds FOB
+    use_custom_aggregation_for_DAF = False # Determines which map feeds DAF
     try:
         # Use the now determined input_filename
-        logging.info(f"Checking workbook filename '{input_filename}' to determine PRIMARY aggregation mode for FOB compounding.")
+        logging.info(f"Checking workbook filename '{input_filename}' to determine PRIMARY aggregation mode for DAF compounding.")
         # Ensure CUSTOM_AGGREGATION_WORKBOOK_PREFIXES is defined in cfg
         custom_prefixes = getattr(cfg, 'CUSTOM_AGGREGATION_WORKBOOK_PREFIXES', [])
         if not isinstance(custom_prefixes, list):
@@ -455,18 +455,18 @@ def run_invoice_automation(input_excel_override: Optional[str] = None, output_di
 
         for prefix in custom_prefixes:
              if input_filename.startswith(prefix):
-                use_custom_aggregation_for_fob = True # This workbook primarily uses custom for FOB
+                use_custom_aggregation_for_DAF = True # This workbook primarily uses custom for DAF
                 aggregation_mode_used = "custom"
-                logging.info(f"Workbook filename matches prefix '{prefix}'. Will use CUSTOM aggregation results for FOB compounding.")
+                logging.info(f"Workbook filename matches prefix '{prefix}'. Will use CUSTOM aggregation results for DAF compounding.")
                 break
-        if not use_custom_aggregation_for_fob:
-             logging.info(f"Workbook filename does not match custom prefixes. Will use STANDARD aggregation results for FOB compounding.")
+        if not use_custom_aggregation_for_DAF:
+             logging.info(f"Workbook filename does not match custom prefixes. Will use STANDARD aggregation results for DAF compounding.")
              aggregation_mode_used = "standard"
     except Exception as e:
         logging.error(f"Error during aggregation strategy determination for filename '{input_filename}': {e}")
-        logging.warning("Defaulting to STANDARD aggregation for FOB compounding due to error.")
+        logging.warning("Defaulting to STANDARD aggregation for DAF compounding due to error.")
         aggregation_mode_used = "standard"
-        use_custom_aggregation_for_fob = False
+        use_custom_aggregation_for_DAF = False
     # ---------------------------------------------
 
     try:
@@ -592,25 +592,25 @@ def run_invoice_automation(input_excel_override: Optional[str] = None, output_di
         # --- End Processing Loop ---
 
 
-        # --- 6. Post-Loop: Perform FOB Compounding (ALWAYS RUNS) ---
+        # --- 6. Post-Loop: Perform DAF Compounding (ALWAYS RUNS) ---
         logging.info("--- All Table Processing Loops Completed ---")
-        logging.info(f"--- Performing Final FOB Compounding (Using '{aggregation_mode_used.upper()}' aggregation results as input) ---")
+        logging.info(f"--- Performing Final DAF Compounding (Using '{aggregation_mode_used.upper()}' aggregation results as input) ---")
         try:
             # Determine the source data based on the mode determined earlier by filename
-            initial_agg_data_source = global_custom_aggregation_results if use_custom_aggregation_for_fob else global_standard_aggregation_results
-            global_fob_compounded_result = perform_fob_compounding(
+            initial_agg_data_source = global_custom_aggregation_results if use_custom_aggregation_for_DAF else global_standard_aggregation_results
+            global_DAF_compounded_result = perform_DAF_compounding(
                 initial_agg_data_source, # Pass the selected map
                 aggregation_mode_used # Pass mode to help parse input keys correctly
             )
-            logging.info("--- FOB Compounding Finished ---")
-        except Exception as fob_e:
-             logging.error(f"An error occurred during the final FOB Compounding step: {fob_e}", exc_info=True)
-             logging.error("FOB Compounding results may be incomplete or missing.")
+            logging.info("--- DAF Compounding Finished ---")
+        except Exception as DAF_e:
+             logging.error(f"An error occurred during the final DAF Compounding step: {DAF_e}", exc_info=True)
+             logging.error("DAF Compounding results may be incomplete or missing.")
 
 
         # --- 7. Output / Further Steps ---
         logging.info(f"Final processed data structure contains {len(processed_tables)} table(s).")
-        logging.info(f"Primary aggregation mode used for FOB Compounding: {aggregation_mode_used.upper()}")
+        logging.info(f"Primary aggregation mode used for DAF Compounding: {aggregation_mode_used.upper()}")
 
         # --- Log Initial Aggregation Results (DEBUG Level) ---
         if logging.getLogger().getEffectiveLevel() <= logging.DEBUG:
@@ -624,13 +624,13 @@ def run_invoice_automation(input_excel_override: Optional[str] = None, output_di
             logging.debug(f"--- Full Global CUSTOM Aggregation Results ---\n{log_str_cust}")
 
 
-        # --- Log Final FOB Compounded Result (INFO Level) - Simplified to expect split result --- #
-        logging.info(f"--- Final FOB Compounded Result (Workbook: '{input_filename}', Based on '{aggregation_mode_used.upper()}' Input) ---")
-        if global_fob_compounded_result is not None and isinstance(global_fob_compounded_result, dict) and "1" in global_fob_compounded_result:
+        # --- Log Final DAF Compounded Result (INFO Level) - Simplified to expect split result --- #
+        logging.info(f"--- Final DAF Compounded Result (Workbook: '{input_filename}', Based on '{aggregation_mode_used.upper()}' Input) ---")
+        if global_DAF_compounded_result is not None and isinstance(global_DAF_compounded_result, dict) and "1" in global_DAF_compounded_result:
             # Assume it's the BUFFALO split result ("1" and "2")
-            logging.info(f"FOB result is split into BUFFALO (1) and NON-BUFFALO (2) groups.")
-            for chunk_index, chunk_data in sorted(global_fob_compounded_result.items()):
-                logging.info(f"--- FOB Group {chunk_index} --- ")
+            logging.info(f"DAF result is split into BUFFALO (1) and NON-BUFFALO (2) groups.")
+            for chunk_index, chunk_data in sorted(global_DAF_compounded_result.items()):
+                logging.info(f"--- DAF Group {chunk_index} --- ")
                 if chunk_data and isinstance(chunk_data, dict):
                     po_string_value = chunk_data.get('combined_po', '<Not Found>')
                     item_string_value = chunk_data.get('combined_item', '<Not Found>')
@@ -647,11 +647,11 @@ def run_invoice_automation(input_excel_override: Optional[str] = None, output_di
                     logging.info(f"  Group {chunk_index} data not found or invalid.")
             logging.info("-" * 30)
 
-        elif global_fob_compounded_result is None:
-            logging.error("FOB Compounding result is None or was not set.")
+        elif global_DAF_compounded_result is None:
+            logging.error("DAF Compounding result is None or was not set.")
         else:
             # Handle unexpected type if necessary (e.g., empty dict if input was empty and aggregation failed)
-             logging.warning(f"FOB Compounding result has unexpected structure/type: {type(global_fob_compounded_result)}")
+             logging.warning(f"DAF Compounding result has unexpected structure/type: {type(global_DAF_compounded_result)}")
 
         # --- End Final Logging ---
 
@@ -665,10 +665,10 @@ def run_invoice_automation(input_excel_override: Optional[str] = None, output_di
                  "metadata": {
                     "workbook_filename": input_filename, # Use the actual input filename
                     "worksheet_name": actual_sheet_name,
-                    "fob_compounding_input_mode": aggregation_mode_used, # Clarify which mode fed FOB
-                    "fob_chunk_size": FOB_CHUNK_SIZE,
-                     "fob_intra_separator": FOB_INTRA_CHUNK_SEPARATOR.encode('unicode_escape').decode('utf-8'), # Encode escapes for JSON clarity
-                    "fob_inter_separator": FOB_INTER_CHUNK_SEPARATOR.encode('unicode_escape').decode('utf-8'), # Encode escapes for JSON clarity
+                    "DAF_compounding_input_mode": aggregation_mode_used, # Clarify which mode fed DAF
+                    "DAF_chunk_size": DAF_CHUNK_SIZE,
+                     "DAF_intra_separator": DAF_INTRA_CHUNK_SEPARATOR.encode('unicode_escape').decode('utf-8'), # Encode escapes for JSON clarity
+                    "DAF_inter_separator": DAF_INTER_CHUNK_SEPARATOR.encode('unicode_escape').decode('utf-8'), # Encode escapes for JSON clarity
                     "timestamp": datetime.datetime.now() # Add generation timestamp
                 },
                  # Include processed table data (potentially large)
@@ -679,7 +679,7 @@ def run_invoice_automation(input_excel_override: Optional[str] = None, output_di
                 "custom_aggregation_results": make_json_serializable(global_custom_aggregation_results),
 
                 # Include the final compounded result (derived from one of the above, based on mode)
-                "final_fob_compounded_result": make_json_serializable(global_fob_compounded_result)
+                "final_DAF_compounded_result": make_json_serializable(global_DAF_compounded_result)
             }
 
              # Convert the structure to a JSON string (pretty-printed)

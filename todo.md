@@ -19,12 +19,11 @@ you are fixing the activity log for the admin dashboard at the actitity monitor,
 #### Accurate number format tracker
 
 
-implement the new algorithem that doesnt care about space when it come to serach with the fob fca
+implement the new algorithem that doesnt care about space when it come to serach with the DAF fca
 
 
 
 
 
 ## Todo
-adding a description fallback extractor 
-download 
+adding a description fallback extractor

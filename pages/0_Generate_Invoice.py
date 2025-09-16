@@ -289,12 +289,12 @@ with tab1:
         st.subheader("3. Select Final Invoice Versions")
         c1, c2, c3 = st.columns(3)
         with c1: gen_normal = st.checkbox("Normal Invoice", value=True, key="hq_normal")
-        with c2: gen_fob = st.checkbox("FOB Version", value=True, key="hq_fob")
+        with c2: gen_DAF = st.checkbox("DAF Version", value=True, key="hq_DAF")
         with c3: gen_combine = st.checkbox("Combine Version", value=True, key="hq_combine")
 
         st.subheader("4. Generate Final Invoices")
         if st.button("Generate Final Invoices", use_container_width=True, type="primary", key="hq_generate"):
-            if not (gen_normal or gen_fob or gen_combine): st.error("Please select at least one invoice version."); st.stop()
+            if not (gen_normal or gen_DAF or gen_combine): st.error("Please select at least one invoice version."); st.stop()
 
             json_path = Path(st.session_state['hq_json_path'])
             final_user_inv_ref = user_inv_ref if user_inv_ref else suggested_ref
@@ -336,7 +336,7 @@ with tab1:
                 detected_term = find_incoterm_from_template(identifier)
                 modes_to_run = []
                 if gen_normal: modes_to_run.append((detected_term if detected_term else "normal", []))
-                if gen_fob: modes_to_run.append(("fob", ["--fob"]))
+                if gen_DAF: modes_to_run.append(("DAF", ["--DAF"]))
                 if gen_combine: modes_to_run.append(("combine", ["--custom"]))
                 
                 success_count = 0

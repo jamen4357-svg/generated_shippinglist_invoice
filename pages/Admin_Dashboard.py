@@ -615,12 +615,256 @@ with tab3:
                 mime="text/csv"
             )
             
-        else:
-            st.info("No activities found for the selected filters.")
-            
+        # Activity Management Actions
+        st.subheader("🛠️ Activity Log Management")
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            if st.button("🗑️ Clear Old Logs", key="clear_old_activities",
+                        help="Remove activities older than selected days"):
+                days_to_keep = st.selectbox("Keep logs for (days)",
+                                          [30, 60, 90, 180, 365],
+                                          index=2, key="days_to_keep")
+                if st.button("Confirm Delete", key="confirm_clear_activities"):
+                    try:
+                        conn = sqlite3.connect(USER_DB_PATH)
+                        cursor = conn.cursor()
+                        cursor.execute('''
+                            DELETE FROM business_activities
+                            WHERE timestamp < datetime('now', '-{} days')
+                        '''.format(days_to_keep))
+                        deleted_count = cursor.rowcount
+                        conn.commit()
+                        conn.close()
+
+                        if deleted_count > 0:
+                            st.success(f"✅ Cleared {deleted_count} old activity logs")
+                            log_security_event(user_info['user_id'] if user_info else 0, 'ADMIN_ACTION',
+                                             f'Admin cleared {deleted_count} old activity logs (kept {days_to_keep} days)')
+                            st.rerun()
+                        else:
+                            st.info("No old logs to clear")
+                    except Exception as e:
+                        st.error(f"Error clearing logs: {e}")
+
+        with col2:
+            if st.button("📊 Export Filtered Data", key="export_filtered_activities",
+                        help="Export current filtered results to CSV"):
+                try:
+                    if activities:
+                        # Create export data with current filters
+                        export_data = []
+                        for activity in activities:
+                            export_data.append({
+                                'Timestamp': activity['timestamp'],
+                                'User': activity['username'],
+                                'Activity_Type': activity['activity_type'],
+                                'Invoice_Ref': activity['target_invoice_ref'] or '',
+                                'Invoice_No': activity['target_invoice_no'] or '',
+                                'Description': activity['action_description'] or '',
+                                'Success': 'Yes' if activity['success'] else 'No',
+                                'IP_Address': activity['ip_address'] or '',
+                                'Old_Values': str(activity['old_values']) if activity['old_values'] else '',
+                                'New_Values': str(activity['new_values']) if activity['new_values'] else ''
+                            })
+
+                        export_df = pd.DataFrame(export_data)
+                        csv_data = export_df.to_csv(index=False)
+
+                        st.download_button(
+                            label="📥 Download Filtered Data (CSV)",
+                            data=csv_data,
+                            file_name=f"filtered_activities_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                            mime="text/csv",
+                            key="download_filtered_csv"
+                        )
+                    else:
+                        st.warning("No data to export with current filters")
+                except Exception as e:
+                    st.error(f"Error preparing export: {e}")
+
+        with col3:
+            if st.button("🔍 Advanced Search", key="advanced_search_activities",
+                        help="Search within activity descriptions and details"):
+                try:
+                    search_term = st.text_input("Search term", key="activity_search_term",
+                                              placeholder="Enter text to search in descriptions...")
+                    if search_term and st.button("Search", key="perform_advanced_search"):
+                        # Search in descriptions and action_descriptions
+                        conn = sqlite3.connect(USER_DB_PATH)
+                        cursor = conn.cursor()
+                        cursor.execute('''
+                            SELECT COUNT(*) FROM business_activities
+                            WHERE (description LIKE ? OR action_description LIKE ?)
+                            AND timestamp > datetime('now', '-{} days')
+                        '''.format(activity_days_filter),
+                        (f'%{search_term}%', f'%{search_term}%'))
+                        search_count = cursor.fetchone()[0]
+                        conn.close()
+
+                        if search_count > 0:
+                            st.success(f"Found {search_count} activities matching '{search_term}'")
+                            # Could add option to filter results by search term
+                        else:
+                            st.info(f"No activities found matching '{search_term}'")
+                except Exception as e:
+                    st.error(f"Error performing search: {e}")
+
+        with col4:
+            if st.button("📈 Activity Analytics", key="activity_analytics",
+                        help="View detailed analytics and trends"):
+                try:
+                    # Show activity analytics
+                    analytics_col1, analytics_col2 = st.columns(2)
+
+                    with analytics_col1:
+                        st.subheader("📊 Activity Trends")
+                        # Activity count by day for last 7 days
+                        conn = sqlite3.connect(USER_DB_PATH)
+                        cursor = conn.cursor()
+                        cursor.execute('''
+                            SELECT date(timestamp) as date, COUNT(*) as count
+                            FROM business_activities
+                            WHERE timestamp > datetime('now', '-7 days')
+                            GROUP BY date(timestamp)
+                            ORDER BY date
+                        ''')
+                        daily_counts = cursor.fetchall()
+                        conn.close()
+
+                        if daily_counts:
+                            daily_df = pd.DataFrame(daily_counts, columns=['Date', 'Activities'])
+                            daily_df['Date'] = pd.to_datetime(daily_df['Date'])
+                            fig = px.bar(daily_df, x='Date', y='Activities',
+                                       title="Daily Activity Volume")
+                            fig.update_layout(height=250)
+                            st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.info("No activity data for the last 7 days")
+
+                    with analytics_col2:
+                        st.subheader("🎯 Top Activities")
+                        # Most common activity types
+                        conn = sqlite3.connect(USER_DB_PATH)
+                        cursor = conn.cursor()
+                        cursor.execute('''
+                            SELECT activity_type, COUNT(*) as count
+                            FROM business_activities
+                            WHERE timestamp > datetime('now', '-{} days')
+                            GROUP BY activity_type
+                            ORDER BY count DESC
+                            LIMIT 5
+                        '''.format(activity_days_filter))
+                        top_activities = cursor.fetchall()
+                        conn.close()
+
+                        if top_activities:
+                            top_df = pd.DataFrame(top_activities, columns=['Activity Type', 'Count'])
+                            fig = px.pie(top_df, values='Count', names='Activity Type',
+                                       title="Activity Distribution")
+                            fig.update_layout(height=250)
+                            st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.info("No activity data available")
+
+                except Exception as e:
+                    st.error(f"Error loading analytics: {e}")
+
+        # Activity Retention Policy
+        st.markdown("---")
+        st.subheader("📋 Activity Log Retention Policy")
+
+        retention_col1, retention_col2 = st.columns(2)
+
+        with retention_col1:
+            st.info("⏰ **Current Retention Settings**")
+            st.write("• Business activities: Keep all (no auto-delete)")
+            st.write("• Security events: Auto-delete after 30 days")
+            st.write("• Manual cleanup: Available for admins")
+
+        with retention_col2:
+            st.info("💡 **Recommended Settings**")
+            st.write("• Keep business activities: 1-2 years")
+            st.write("• Keep security events: 90 days")
+            st.write("• Archive old logs: Monthly basis")
+            st.write("• Regular backups: Weekly")
+
+        # Bulk Operations
+        st.markdown("---")
+        st.subheader("⚡ Bulk Operations")
+
+        bulk_col1, bulk_col2, bulk_col3 = st.columns(3)
+
+        with bulk_col1:
+            if st.button("🔄 Refresh All Caches", key="refresh_all_caches",
+                        help="Clear all cached data and refresh from database"):
+                try:
+                    # Clear various caches
+                    st.cache_data.clear()
+                    st.success("✅ All caches cleared and refreshed")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error refreshing caches: {e}")
+
+        with bulk_col2:
+            if st.button("📊 Generate Report", key="generate_activity_report",
+                        help="Generate comprehensive activity report"):
+                try:
+                    # Generate summary report
+                    conn = sqlite3.connect(USER_DB_PATH)
+                    cursor = conn.cursor()
+
+                    # Get summary stats
+                    cursor.execute('''
+                        SELECT
+                            COUNT(*) as total_activities,
+                            COUNT(DISTINCT username) as unique_users,
+                            COUNT(DISTINCT activity_type) as activity_types,
+                            MIN(timestamp) as oldest_activity,
+                            MAX(timestamp) as newest_activity
+                        FROM business_activities
+                        WHERE timestamp > datetime('now', '-{} days')
+                    '''.format(activity_days_filter))
+                    stats = cursor.fetchone()
+
+                    cursor.execute('''
+                        SELECT activity_type, COUNT(*) as count
+                        FROM business_activities
+                        WHERE timestamp > datetime('now', '-{} days')
+                        GROUP BY activity_type
+                        ORDER BY count DESC
+                    '''.format(activity_days_filter))
+                    activity_breakdown = cursor.fetchall()
+
+                    conn.close()
+
+                    if stats:
+                        st.success("📊 **Activity Report Generated**")
+                        st.write(f"• **Total Activities:** {stats[0]}")
+                        st.write(f"• **Unique Users:** {stats[1]}")
+                        st.write(f"• **Activity Types:** {stats[2]}")
+                        st.write(f"• **Date Range:** {stats[3]} to {stats[4]}")
+
+                        if activity_breakdown:
+                            st.write("• **Activity Breakdown:**")
+                            for activity_type, count in activity_breakdown[:5]:  # Top 5
+                                st.write(f"  - {activity_type}: {count}")
+
+                except Exception as e:
+                    st.error(f"Error generating report: {e}")
+
+        with bulk_col3:
+            if st.button("🗂️ Archive Old Logs", key="archive_old_logs",
+                        help="Move old logs to archive (not implemented yet)"):
+                st.info("🗂️ **Archive Feature**")
+                st.write("This feature will be implemented in a future update.")
+                st.write("It will move old logs to compressed archive files.")
+                st.caption("Coming soon: Automated log archiving system")
+
     except Exception as e:
         st.error(f"Error loading activity data: {e}")
-        st.info("Activity monitoring may be temporarily unavailable.")
+        st.info("Please try refreshing the page or contact support if the problem persists.")
 
 # --- Tab 4: Storage Manager ---
 with tab4:
@@ -826,7 +1070,7 @@ with tab5:
                                 st.info("User can now log in with the provided credentials.")
                                 
                                 # Log the user creation
-                                log_security_event(user_info['user_id'], 'USER_CREATED', 
+                                log_security_event(user_info['user_id'] if user_info else 0, 'USER_CREATED', 
                                                  f'Admin created new user: {username} with role: {role}')
                                 
                                 # Show user details
@@ -834,7 +1078,7 @@ with tab5:
                                 st.write(f"**Username:** {username}")
                                 st.write(f"**Role:** {role.title()}")
                                 st.write(f"**Status:** {'Active' if is_active else 'Inactive'}")
-                                st.write(f"**Created by:** {user_info['username']}")
+                                st.write(f"**Created by:** {user_info['username'] if user_info else 'Unknown'}")
                                 
                             else:
                                 st.error(f"❌ Error creating user: {message}")
@@ -948,7 +1192,7 @@ with tab5:
                                         conn.close()
                                         
                                         st.success(f"✅ User '{username}' unlocked!")
-                                        log_security_event(user_info['user_id'], 'ADMIN_ACTION', 
+                                        log_security_event(user_info['user_id'] if user_info else 0, 'ADMIN_ACTION', 
                                                          f'Admin unlocked user: {username}')
                                         st.rerun()
                                     except Exception as e:
@@ -957,7 +1201,7 @@ with tab5:
                             with action_col2:
                                 if is_active:
                                     if st.button(f"❌ Deactivate", key=f"deactivate_{user_id}"):
-                                        if username == user_info['username']:
+                                        if username == (user_info['username'] if user_info else ''):
                                             st.error("❌ Cannot deactivate your own account!")
                                         else:
                                             try:
@@ -968,7 +1212,7 @@ with tab5:
                                                 conn.close()
                                                 
                                                 st.success(f"✅ User '{username}' deactivated!")
-                                                log_security_event(user_info['user_id'], 'ADMIN_ACTION', 
+                                                log_security_event(user_info['user_id'] if user_info else 0, 'ADMIN_ACTION', 
                                                                  f'Admin deactivated user: {username}')
                                                 st.rerun()
                                             except Exception as e:
@@ -983,7 +1227,7 @@ with tab5:
                                             conn.close()
                                             
                                             st.success(f"✅ User '{username}' activated!")
-                                            log_security_event(user_info['user_id'], 'ADMIN_ACTION', 
+                                            log_security_event(user_info['user_id'] if user_info else 0, 'ADMIN_ACTION', 
                                                              f'Admin activated user: {username}')
                                             st.rerun()
                                         except Exception as e:
@@ -999,7 +1243,7 @@ with tab5:
                                         conn.close()
                                         
                                         st.success(f"✅ Reset failed attempts for '{username}'!")
-                                        log_security_event(user_info['user_id'], 'ADMIN_ACTION', 
+                                        log_security_event(user_info['user_id'] if user_info else 0, 'ADMIN_ACTION', 
                                                          f'Admin reset failed attempts for user: {username}')
                                         st.rerun()
                                     except Exception as e:
@@ -1016,14 +1260,14 @@ with tab5:
                                             conn.close()
                                             
                                             st.success(f"✅ '{username}' is now an admin!")
-                                            log_security_event(user_info['user_id'], 'ADMIN_ACTION', 
+                                            log_security_event(user_info['user_id'] if user_info else 0, 'ADMIN_ACTION', 
                                                              f'Admin promoted user to admin: {username}')
                                             st.rerun()
                                         except Exception as e:
                                             st.error(f"Error: {e}")
                                 else:
                                     if st.button(f"⬇️ Make User", key=f"user_{user_id}"):
-                                        if username == user_info['username']:
+                                        if username == (user_info['username'] if user_info else ''):
                                             st.error("❌ Cannot demote yourself!")
                                         else:
                                             try:
@@ -1034,7 +1278,7 @@ with tab5:
                                                 conn.close()
                                                 
                                                 st.success(f"✅ '{username}' is now a regular user!")
-                                                log_security_event(user_info['user_id'], 'ADMIN_ACTION', 
+                                                log_security_event(user_info['user_id'] if user_info else 0, 'ADMIN_ACTION', 
                                                                  f'Admin demoted admin to user: {username}')
                                                 st.rerun()
                                             except Exception as e:
@@ -1122,7 +1366,7 @@ with tab6:
                 st.write("**Token Settings:**")
                 st.write(f"• Max uses: {max_uses}")
                 st.write(f"• Expires in: {expiry_days} days")
-                st.write(f"• Created by: {user_info['username']}")
+                st.write(f"• Created by: {user_info['username'] if user_info else 'Unknown'}")
             
             if st.form_submit_button("🔑 Generate Token"):
                 with st.spinner("Generating token..."):
@@ -1130,8 +1374,8 @@ with tab6:
                     expires_hours = expiry_days * 24
                     try:
                         result = generate_registration_token(
-                            user_info['user_id'], 
-                            user_info['username'],
+                            user_info['user_id'] if user_info else 0, 
+                            user_info['username'] if user_info else 'Unknown',
                             max_uses, 
                             expires_hours
                         )

@@ -98,7 +98,7 @@ def derive_paths(input_data_path_str: str, template_dir_str: str, config_dir_str
             print("Exact match not found. Attempting prefix matching...")
 
             # --- Attempt 2: Prefix Match ---
-            prefix_match = re.match(r'^([a-zA-Z]+)', template_name_part) # Extract leading letters
+            prefix_match = re.match(r'^([a-zA-Z]+[-_]?[a-zA-Z]*)', template_name_part) # Extract leading letters with optional separator
             if prefix_match:
                 prefix = prefix_match.group(1)
                 print(f"Extracted prefix: '{prefix}'")
@@ -866,7 +866,8 @@ def main():
                                 pallet_count=grand_total_pallets_for_summary_row,
                                 override_total_text="TOTAL OF:",
                                 grand_total_flag=True,
-                                fob_mode=args.fob
+                                fob_mode=args.fob,
+                                sheet_styling_config=sheet_styling_config
                             )
 
                             if footer_row_index != -1:

@@ -373,29 +373,36 @@ def write_grand_total_weight_summary(
     gross_weight_row = start_row + 1
 
     try:
-        cell_net_label = worksheet.cell(row=net_weight_row, column=label_col_idx, value="NW:")
+        cell_net_label = worksheet.cell(row=net_weight_row, column=label_col_idx, value="NW(KGS)")
         cell_net_value = worksheet.cell(row=net_weight_row, column=value_col_idx, value=float(grand_total_net))
         cell_net_value.number_format = FORMAT_NUMBER_COMMA_SEPARATED2
 
-        cell_gross_label = worksheet.cell(row=gross_weight_row, column=label_col_idx, value="GW:")
+        cell_gross_label = worksheet.cell(row=gross_weight_row, column=label_col_idx, value="GW(KGS):")
         cell_gross_value = worksheet.cell(row=gross_weight_row, column=value_col_idx, value=float(grand_total_gross))
         cell_gross_value.number_format = FORMAT_NUMBER_COMMA_SEPARATED2
 
         for cell in [cell_net_label, cell_net_value, cell_gross_label, cell_gross_value]:
             cell.font = font_to_apply
             cell.alignment = align_to_apply
-        
-            # --- Get Column Indices and Dimensions (no changes here) ---
-        col_id_map = header_info.get("column_id_map", {})
-        num_columns = header_info.get("num_columns", 1)
-        label_col_idx = col_id_map.get(weight_config.get("label_col_id"))
-        value_col_idx = col_id_map.get(weight_config.get("value_col_id"))
+
+        # --- Apply Per-Column Alignment and Font from column_id_styles (if available) ---
+        if styling_config:
+            column_id_styles = styling_config.get("column_id_styles", {})
+            idx_to_id_map = {v: k for k, v in col_id_map.items()}
+            for cell in [cell_net_label, cell_net_value, cell_gross_label, cell_gross_value]:
+                col_idx = cell.column
+                column_id = idx_to_id_map.get(col_idx)
+                if column_id and column_id in column_id_styles:
+                    col_style = column_id_styles[column_id]
+                    # Apply alignment if specified
+                    if 'alignment' in col_style:
+                        cell.alignment = Alignment(**{k: v for k, v in col_style['alignment'].items() if v is not None})
+                    # Apply font if specified
+                    if 'font' in col_style:
+                        cell.font = Font(**{k: v for k, v in col_style['font'].items() if v is not None})
         
         # ADD THIS LINE
         last_mapped_col_idx = max(col_id_map.values()) if col_id_map else 1
-        for cell in [cell_net_label, cell_net_value, cell_gross_label, cell_gross_value]:
-            cell.font = font_to_apply
-            cell.alignment = align_to_apply
 
         # --- ADD THIS BLOCK TO APPLY BORDERS ---
         border_to_apply = thin_border
@@ -1302,13 +1309,20 @@ def write_summary_rows(
                 cell = worksheet.cell(row=row_num, column=c_idx)
                 current_col_id = idx_to_id_map.get(c_idx)
 
-                # Step 1: Apply column-specific styles first (like number formats).
-                _apply_cell_style(cell, current_col_id, styling_config, fob_mode)
-
-                # Step 2: Enforce the general footer style as the final rule.
+                # Step 1: Apply general footer style first.
                 cell.font = font_to_apply
                 cell.alignment = align_to_apply
                 cell.border = no_border
+
+                # Step 2: Apply column-specific styles to override if present.
+                if styling_config and current_col_id:
+                    column_id_styles = styling_config.get("column_id_styles", {})
+                    if current_col_id in column_id_styles:
+                        col_style = column_id_styles[current_col_id]
+                        if 'alignment' in col_style:
+                            cell.alignment = Alignment(**{k: v for k, v in col_style['alignment'].items() if v is not None})
+                        if 'font' in col_style:
+                            cell.font = Font(**{k: v for k, v in col_style['font'].items() if v is not None})
         
         # --- Apply Row Height (remains the same) ---
         footer_height = None
@@ -1338,7 +1352,8 @@ def write_footer_row(
     pallet_count: int,
     override_total_text: Optional[str] = None,
     fob_mode: bool = False,
-    grand_total_flag: bool = False
+    grand_total_flag: bool = False,
+    sheet_styling_config: Optional[Dict[str, Any]] = None
 ) -> int:
     """
     Writes a fully configured footer row, including styling, borders, merges,
@@ -1506,7 +1521,21 @@ def write_footer_row(
             if resolved_start_col and colspan:
                 end_col = min(resolved_start_col + colspan - 1, num_columns)
                 worksheet.merge_cells(start_row=footer_row_num, start_column=resolved_start_col, end_row=footer_row_num, end_column=end_col)
-                worksheet.cell(row=footer_row_num, column=resolved_start_col).alignment = align_to_apply
+        # --- 5. Apply Per-Column Alignment and Font from column_id_styles (if available) ---
+        if sheet_styling_config:
+            column_id_styles = sheet_styling_config.get("column_id_styles", {})
+            idx_to_id_map = {v: k for k, v in column_map_by_id.items()}
+            for c_idx in range(1, num_columns + 1):
+                cell = worksheet.cell(row=footer_row_num, column=c_idx)
+                column_id = idx_to_id_map.get(c_idx)
+                if column_id and column_id in column_id_styles:
+                    col_style = column_id_styles[column_id]
+                    # Apply alignment if specified
+                    if 'alignment' in col_style:
+                        cell.alignment = Alignment(**{k: v for k, v in col_style['alignment'].items() if v is not None})
+                    # Apply font if specified
+                    if 'font' in col_style:
+                        cell.font = Font(**{k: v for k, v in col_style['font'].items() if v is not None})
 
         return footer_row_num
 
@@ -2008,7 +2037,8 @@ def fill_invoice_data(
                 sum_ranges=data_range_to_sum,
                 footer_config=footer_config,
                 pallet_count=pallet_count,
-                fob_mode=data_source_type == "fob_aggregation"
+                fob_mode=data_source_type == "fob_aggregation",
+                sheet_styling_config=sheet_styling_config
             )
     # No need to pass font, alignment, num_columns, etc. as the
     # function gets this info from header_info and footer_config.

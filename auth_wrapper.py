@@ -31,7 +31,7 @@ def require_authentication(page_name=None, admin_required=False):
         st.stop()
     
     # Check admin privileges if required
-    if admin_required and user_info.get('role') != 'admin':
+    if admin_required and user_info and user_info.get('role') != 'admin':
         st.error("🛡️ Admin privileges required to access this page")
         st.info("Contact your administrator if you need access to this feature.")
         

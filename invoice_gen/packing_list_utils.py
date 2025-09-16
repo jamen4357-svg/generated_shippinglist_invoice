@@ -156,7 +156,7 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
         # WRITE MAIN FOOTER
         pallet_count = len(table_data.get('pallet_count', []))
         grand_total_pallets += pallet_count
-        invoice_utils.write_footer_row(worksheet, write_pointer_row, header_info, [(data_start_row, write_pointer_row - 1)], footer_config, pallet_count)
+        invoice_utils.write_footer_row(worksheet, write_pointer_row, header_info, [(data_start_row, write_pointer_row - 1)], footer_config, pallet_count, sheet_styling_config=styling_config)
         
         # Re-apply styles to the footer row to add number formats and correct border
         footer_style_config = footer_config.get('style', {})
@@ -196,7 +196,7 @@ def generate_full_packing_list(worksheet: Worksheet, start_row: int, packing_lis
         num_columns = last_header_info.get('num_columns', 1)
         idx_to_id_map = {v: k for k, v in last_header_info.get('column_id_map', {}).items()}
 
-        invoice_utils.write_footer_row(worksheet, write_pointer_row, last_header_info, all_data_ranges, footer_config, grand_total_pallets, "TOTAL OF:")
+        invoice_utils.write_footer_row(worksheet, write_pointer_row, last_header_info, all_data_ranges, footer_config, grand_total_pallets, "TOTAL OF:", sheet_styling_config=styling_config)
         
         # Re-apply styles to the grand total footer row
         footer_style_config = footer_config.get('style', {})

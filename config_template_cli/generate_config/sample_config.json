@@ -188,7 +188,8 @@
           "sqft": { "id": "col_qty_sf" },
           "net": { "id": "col_net" },
           "gross": { "id": "col_gross" },
-          "cbm": { "id": "col_cbm" }
+          "cbm": { "id": "col_cbm" },
+          "remarks": { "id": "col_remarks" }
         }
       },
       "footer_configurations": {

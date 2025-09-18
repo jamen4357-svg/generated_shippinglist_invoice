@@ -117,6 +117,12 @@ class ExcelAnalyzer:
                 worksheet, sheet_name, header_positions, start_row
             )
             
+            # Detect FOB summary conditions (only for packing list sheets)
+            fob_summary_description = self._detect_fob_summary_description(worksheet, sheet_name, header_positions, start_row)
+            
+            # Detect weight summary conditions (only for invoice sheets)
+            weight_summary_enabled = self._detect_weight_summary_enabled(worksheet, sheet_name, header_positions, start_row)
+            
             # Create SheetAnalysis object
             return SheetAnalysis(
                 sheet_name=sheet_name,
@@ -126,13 +132,114 @@ class ExcelAnalyzer:
                 header_positions=header_positions,
                 number_formats=number_formats,
                 alignments=alignments,
-                fallbacks=fallbacks
+                fallbacks=fallbacks,
+                fob_summary_description=fob_summary_description,
+                weight_summary_enabled=weight_summary_enabled
             )
             
         except Exception as e:
             # Log warning but continue with other sheets
             print(f"Warning: Failed to analyze sheet '{sheet_name}': {str(e)}")
             return None
+    
+    def _detect_fob_summary_description(self, worksheet: Worksheet, sheet_name: str, header_positions: List[HeaderMatch], start_row: int) -> bool:
+        """
+        Detect FOB summary description conditions in packing list sheets.
+        
+        Searches for cells containing 'buffalo' text (case insensitive).
+        Only applies to sheets named "Packing list".
+        
+        Args:
+            worksheet: The openpyxl worksheet to analyze
+            sheet_name: Name of the worksheet
+            header_positions: List of detected header positions
+            start_row: The start row for data
+            
+        Returns:
+            True if cells with 'buffalo' text are found, False otherwise
+        """
+        # Only check for packing list sheets
+        if sheet_name.lower() != "packing list":
+            return False
+        
+        try:
+            # Scan all cells for 'buffalo' text
+            max_row = worksheet.max_row
+            max_col = worksheet.max_column
+            
+            for row in range(start_row, max_row + 1):
+                for col in range(1, max_col + 1):
+                    cell = worksheet.cell(row=row, column=col)
+                    cell_value = cell.value
+                    
+                    # Check if cell contains 'buffalo' (case insensitive)
+                    if cell_value and isinstance(cell_value, str) and 'buffalo' in cell_value.lower():
+                        print(f"[FOB_SUMMARY_DESC] Found 'buffalo' text in {sheet_name}, cell {chr(64 + col)}{row}: '{cell_value}'")
+                        return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"Warning: Failed to detect FOB summary description in sheet '{sheet_name}': {str(e)}")
+            return False
+    
+    def _detect_weight_summary_enabled(self, worksheet: Worksheet, sheet_name: str, header_positions: List[HeaderMatch], start_row: int) -> bool:
+        """
+        Detect weight summary conditions in invoice sheets.
+        
+        Searches for cells containing 'NW(KGS):' text (case insensitive).
+        Only applies to sheets named "Invoice".
+        
+        Args:
+            worksheet: The openpyxl worksheet to analyze
+            sheet_name: Name of the worksheet
+            header_positions: List of detected header positions
+            start_row: The start row for data
+            
+        Returns:
+            True if cells with 'NW(KGS):' text are found, False otherwise
+        """
+        # Only check for invoice sheets
+        if sheet_name.lower() != "invoice":
+            return False
+        
+        try:
+            # Scan all cells for 'NW(KGS):' text
+            max_row = worksheet.max_row
+            max_col = worksheet.max_column
+            
+            for row in range(1, max_row + 1):  # Start from row 1 to check headers too
+                for col in range(1, max_col + 1):
+                    cell = worksheet.cell(row=row, column=col)
+                    cell_value = cell.value
+                    
+                    # Check if cell contains 'NW(KGS):' (case insensitive)
+                    if cell_value and isinstance(cell_value, str) and 'nw(kgs):' in cell_value.lower():
+                        print(f"[WEIGHT_SUMMARY] Found 'NW(KGS):' text in {sheet_name}, cell {chr(64 + col)}{row}: '{cell_value}'")
+                        return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"Warning: Failed to detect weight summary in sheet '{sheet_name}': {str(e)}")
+            return False
+        """
+        Check if a list of row numbers are adjacent (consecutive).
+        
+        Args:
+            rows: List of row numbers
+            
+        Returns:
+            True if rows are consecutive, False otherwise
+        """
+        if len(rows) <= 1:
+            return False
+        
+        sorted_rows = sorted(rows)
+        for i in range(1, len(sorted_rows)):
+            if sorted_rows[i] != sorted_rows[i-1] + 1:
+                return False
+        return True
     
     def analyze_and_output_text(self, file_path: str) -> str:
         """

@@ -170,6 +170,12 @@ class QuantityDataLoader:
                     fallback_DAF_texts=fallbacks_data['fallback_DAF_texts']
                 )
             
+            # Parse fob_summary_description if available
+            fob_summary_description = sheet_data.get('fob_summary_description', False)
+            
+            # Parse weight_summary_enabled if available
+            weight_summary_enabled = sheet_data.get('weight_summary_enabled', False)
+            
             # Create sheet data object
             sheet = SheetData(
                 sheet_name=sheet_data['sheet_name'],
@@ -180,7 +186,9 @@ class QuantityDataLoader:
                 footer_info=footer_info,
                 number_formats=number_formats,
                 alignments=alignments,
-                fallbacks=fallbacks
+                fallbacks=fallbacks,
+                fob_summary_description=fob_summary_description,
+                weight_summary_enabled=weight_summary_enabled
             )
             sheets.append(sheet)
         

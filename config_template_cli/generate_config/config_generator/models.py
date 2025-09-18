@@ -126,6 +126,8 @@ class SheetData:
     number_formats: List[NumberFormatInfo] = None
     alignments: List[AlignmentInfo] = None
     fallbacks: Optional[FallbackInfo] = None
+    fob_summary_description: bool = False
+    weight_summary_enabled: bool = False
     
     def __post_init__(self):
         """Validate sheet data after initialization."""

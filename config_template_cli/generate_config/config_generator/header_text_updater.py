@@ -202,6 +202,7 @@ class HeaderTextUpdater:
         
         # Check if we have multi-row headers
         has_multi_row = len(sorted_rows) > 1
+        print(f"[DEBUG] Sheet {sheet_name}: has_multi_row={has_multi_row}, rows={sorted_rows}")
         
         if has_multi_row:
             print(f"[INFO] Detected multi-row headers in {sheet_name}: rows {sorted_rows}")
@@ -221,11 +222,19 @@ class HeaderTextUpdater:
                     unique_second_row[key] = h
             second_row_headers = list(unique_second_row.values())
             
+            # Sort second row headers by Excel column position
+            second_row_headers = sorted(second_row_headers, key=lambda h: h['excel_col'])
+            
             # Identify which first-row headers should become parent headers with colspan
             first_row_cols = {h['excel_col'] for h in first_row_headers}
             
+            # Sort first row headers by Excel column position to ensure correct ordering
+            first_row_headers = sorted(first_row_headers, key=lambda h: h['excel_col'])
+            debug_info = [f"{h['keyword']} (col {h['excel_col']})" for h in first_row_headers]
+            print(f"[DEBUG] First row headers after sorting: {debug_info}")
+            
             # Process first row headers
-            for header_info in first_row_headers:
+            for i, header_info in enumerate(first_row_headers):
                 keyword = header_info['keyword']
                 excel_col = header_info['excel_col']
                 
@@ -250,7 +259,7 @@ class HeaderTextUpdater:
                         if len(consecutive_children) > 1:
                             header_entry = {
                                 "row": 0,
-                                "col": excel_col - 1,  # Convert to 0-based indexing
+                                "col": excel_col - 1,  # Convert to 0-based indexing using actual Excel column
                                 "text": keyword,
                                 "colspan": len(consecutive_children)
                             }
@@ -259,7 +268,7 @@ class HeaderTextUpdater:
                             # Regular header with rowspan=2 to span both rows
                             header_entry = {
                                 "row": 0,
-                                "col": excel_col - 1,  # Convert to 0-based indexing
+                                "col": excel_col - 1,  # Convert to 0-based indexing using actual Excel column
                                 "text": keyword,
                                 "id": column_id,
                                 "rowspan": 2
@@ -269,7 +278,7 @@ class HeaderTextUpdater:
                         # Regular header with rowspan=2 to span both rows
                         header_entry = {
                             "row": 0,
-                            "col": excel_col - 1,  # Convert to 0-based indexing
+                            "col": excel_col - 1,  # Convert to 0-based indexing using actual Excel column
                             "text": keyword,
                             "id": column_id,
                             "rowspan": 2
@@ -289,14 +298,25 @@ class HeaderTextUpdater:
                 column_id = self.map_header_to_column_id(keyword, strict_mode=not interactive_mode)
                 
                 if column_id:
+                    # Find the sequential position by matching with first row headers
+                    sequential_col = None
+                    for i, first_header in enumerate(first_row_headers):
+                        if first_header['excel_col'] == excel_col:
+                            sequential_col = i
+                            break
+                    
+                    # If not found under a first row header, use the excel column logic
+                    if sequential_col is None:
+                        sequential_col = excel_col - 1
+                    
                     header_entry = {
                         "row": 1,  # Second row
-                        "col": excel_col - 1,  # Convert to 0-based indexing
+                        "col": sequential_col,  # Use sequential position
                         "text": keyword,
                         "id": column_id
                     }
                     generated_headers.append(header_entry)
-                    print(f"[INFO] Generated second-row header for '{keyword}' → {column_id} at row 1, col {excel_col - 1}")
+                    print(f"[INFO] Generated second-row header for '{keyword}' → {column_id} at row 1, col {sequential_col}")
                 else:
                     unrecognized_headers.append(f"{sheet_name}:{keyword}")
                     print(f"[WARNING] Unrecognized second-row header '{keyword}' in sheet '{sheet_name}' - skipping")

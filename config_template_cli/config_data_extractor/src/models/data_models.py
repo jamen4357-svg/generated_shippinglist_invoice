@@ -81,6 +81,8 @@ class SheetAnalysis:
     number_formats: List[NumberFormatInfo]
     alignments: List[AlignmentInfo] = None
     fallbacks: Optional[FallbackInfo] = None
+    fob_summary_description: bool = False
+    weight_summary_enabled: bool = False
     
     def to_text(self) -> str:
         """Convert analysis results to simple text format."""
@@ -116,7 +118,9 @@ Start Row: {self.start_row}"""
             'header_positions': [pos.to_dict() for pos in self.header_positions],
             'number_formats': [fmt.to_dict() for fmt in self.number_formats],
             'alignments': [align.to_dict() for align in self.alignments],
-            'fallbacks': self.fallbacks.to_dict() if self.fallbacks else None
+            'fallbacks': self.fallbacks.to_dict() if self.fallbacks else None,
+            'fob_summary_description': self.fob_summary_description,
+            'weight_summary_enabled': self.weight_summary_enabled
         }
 
 

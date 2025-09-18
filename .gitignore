@@ -45,3 +45,8 @@ temp_uploads/
 !*_config.json
 !**/config/*.json
 !**/TEMPLATE/*.json
+
+# --- Environment Files ---
+# Ignore virtual environment and environment variable files
+venv/
+.env

@@ -20,6 +20,8 @@ from .style_updater import StyleUpdater
 from .merge_rules_updater import MergeRulesUpdater
 from .number_format_updater import NumberFormatUpdater
 from .fallback_updater import FallbackUpdater
+from .summary_updater import SummaryUpdater
+from .weight_summary_updater import WeightSummaryUpdater
 from .config_writer import ConfigWriter, ConfigWriterError
 from .models import QuantityAnalysisData
 
@@ -67,6 +69,8 @@ class ConfigGenerator:
         self.merge_rules_updater = MergeRulesUpdater()
         self.number_format_updater = NumberFormatUpdater()
         self.fallback_updater = FallbackUpdater()
+        self.summary_updater = SummaryUpdater()
+        self.weight_summary_updater = WeightSummaryUpdater()
         self.config_writer = ConfigWriter()
         
         # Initialize mapping manager for reporting
@@ -280,6 +284,14 @@ class ConfigGenerator:
             # Step 3g: Update data_cell_merging_rule with colspan from headers
             self.logger.debug("Updating data_cell_merging_rule with colspan from headers")
             updated_config = self.merge_rules_updater.update_data_cell_merging_col(updated_config)
+            
+            # Step 3h: Update summary field based on FOB summary detection
+            self.logger.debug("Updating summary field based on FOB summary detection")
+            updated_config = self.summary_updater.update_summary(updated_config, quantity_data)
+            
+            # Step 3i: Update weight summary config based on NW(KGS) detection
+            self.logger.debug("Updating weight summary config based on NW(KGS) detection")
+            updated_config = self.weight_summary_updater.update_weight_summary(updated_config, quantity_data)
             
             self.logger.debug("All configuration updates completed")
             return updated_config

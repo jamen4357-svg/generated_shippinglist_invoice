@@ -374,14 +374,16 @@ class HeaderLayoutUpdater:
         if clean_config in clean_excel or clean_excel in clean_config:
             return True
         
-        # Special cases
-        if 'quantity' in clean_config and 'quantity' in clean_excel:
+        # Special cases - be more specific to avoid false matches
+        if clean_config == 'quantity' and 'quantity' in clean_excel:
             return True
-        if 'description' in clean_config and 'description' in clean_excel:
+        if clean_config == 'description' and 'description' in clean_excel:
             return True
-        if 'mark' in clean_config and 'mark' in clean_excel:
+        if clean_config == 'mark' and 'mark' in clean_excel and len(clean_config) <= len(clean_excel):
             return True
-        if 'item' in clean_config and 'item' in clean_excel:
+        if clean_config == 'item' and 'item' in clean_excel:
+            return True
+        if clean_config == 'remarks' and 'remarks' in clean_excel:
             return True
         
         return False

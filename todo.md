@@ -26,4 +26,4 @@ implement the new algorithem that doesnt care about space when it come to serach
 
 
 ## Todo
-adding a description fallback extractor
+change the leather to cow leather for TIMBERLAND

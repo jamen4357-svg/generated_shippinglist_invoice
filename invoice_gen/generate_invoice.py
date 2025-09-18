@@ -473,12 +473,12 @@ def process_single_table_sheet(
         data_source_type = 'custom_aggregation'
 
     if data_to_fill is None:
-        if args.fob and sheet_name in ["Invoice", "Contract"]:
-            data_source_indicator = 'fob_aggregation'
+        if args.DAF and sheet_name in ["Invoice", "Contract"]:
+            data_source_indicator = 'DAF_aggregation'
 
-        if data_source_indicator == 'fob_aggregation':
-            data_to_fill = invoice_data.get('final_fob_compounded_result')
-            data_source_type = 'fob_aggregation'
+        if data_source_indicator == 'DAF_aggregation':
+            data_to_fill = invoice_data.get('final_DAF_compounded_result')
+            data_source_type = 'DAF_aggregation'
         elif data_source_indicator == 'aggregation':
             data_to_fill = invoice_data.get('standard_aggregation_results')
             data_source_type = 'aggregation'
@@ -516,7 +516,7 @@ def process_single_table_sheet(
         grand_total_pallets=final_grand_total_pallets,
         custom_flag=args.custom,
         data_cell_merging_rules=data_cell_merging_rules,
-        fob_mode=args.fob,
+        DAF_mode=args.DAF,
     )
 
     if not fill_success:
@@ -559,7 +559,7 @@ def process_single_table_sheet(
 
     # Fill summary fields by finding cell markers
     print("Attempting to fill summary fields...")
-    summary_data_source = invoice_data.get('final_fob_compounded_result', {})
+    summary_data_source = invoice_data.get('final_DAF_compounded_result', {})
     if summary_data_source and sheet_inner_mapping_rules_dict:
         for map_key, map_rule in sheet_inner_mapping_rules_dict.items():
             if isinstance(map_rule, dict) and 'marker' in map_rule:
@@ -580,7 +580,7 @@ def main():
     parser.add_argument("-o", "--output", default="result.xlsx", help="Path for the output Excel file (default: result.xlsx)")
     parser.add_argument("-t", "--templatedir", default="./TEMPLATE", help="Directory containing template Excel files (default: ./TEMPLATE)")
     parser.add_argument("-c", "--configdir", default="./configs", help="Directory containing configuration JSON files (default: ./configs)")
-    parser.add_argument("--fob", action="store_true", help="Generate FOB version using final_fob_compounded_result for Invoice/Contract sheets.")
+    parser.add_argument("--DAF", action="store_true", help="Generate DAF version using final_DAF_compounded_result for Invoice/Contract sheets.")
     parser.add_argument("--custom", action="store_true", help="Enable custom processing logic (details TBD).")
     args = parser.parse_args()
 
@@ -623,9 +623,9 @@ def main():
             sys.exit(1) # Exit if no sheets to process
 
         # --- Store Original Merges BEFORE processing using merge_utils ---
-        if args.fob:
-            print("\n--- Running initial template replacements for FOB ---")
-            text_replace_utils.run_fob_specific_replacement_task(
+        if args.DAF:
+            print("\n--- Running initial template replacements for DAF ---")
+            text_replace_utils.run_DAF_specific_replacement_task(
                 workbook=workbook
             )
         
@@ -681,16 +681,16 @@ def main():
             data_source_indicator = sheet_data_map.get(sheet_name) # Get indicator from config
 
 
-            # --- Check for FOB flag override ---
-            if args.fob and sheet_name in ["Invoice", "Contract"]:
-                print(f"--fob flag active. Overriding data source for '{sheet_name}' to 'fob_aggregation'.")
-                data_source_indicator = 'fob_aggregation'
-            # --- End FOB flag override ---
+            # --- Check for DAF flag override ---
+            if args.DAF and sheet_name in ["Invoice", "Contract"]:
+                print(f"--DAF flag active. Overriding data source for '{sheet_name}' to 'DAF_aggregation'.")
+                data_source_indicator = 'DAF_aggregation'
+            # --- End DAF flag override ---
 
             sheet_styling_config = sheet_mapping_section.get("styling") # Get styling rules dict or None
 
             if not sheet_mapping_section: print(f"Warning: No 'data_mapping' section for sheet '{sheet_name}'. Skipping."); continue
-            if not data_source_indicator: print(f"Warning: No 'sheet_data_map' entry for sheet '{sheet_name}' (or FOB override failed). Skipping."); continue # Adjusted warning
+            if not data_source_indicator: print(f"Warning: No 'sheet_data_map' entry for sheet '{sheet_name}' (or DAF override failed). Skipping."); continue # Adjusted warning
 
             # --- Retrieve flags and mappings ONCE per sheet ---
             add_blank_after_hdr_flag = sheet_mapping_section.get("add_blank_after_header", False)
@@ -805,7 +805,7 @@ def main():
                         grand_total_pallets=final_grand_total_pallets,
                         custom_flag=args.custom,
                         data_cell_merging_rules=data_cell_merging_rules,
-                        fob_mode=args.fob,
+                        DAF_mode=args.DAF,
                     )
                     # fill_invoice_data now handles writing blank rows, data, footer row
                     # within the allocated space. next_row_after_chunk is the row AFTER its footer.
@@ -866,7 +866,7 @@ def main():
                                 pallet_count=grand_total_pallets_for_summary_row,
                                 override_total_text="TOTAL OF:",
                                 grand_total_flag=True,
-                                fob_mode=args.fob,
+                                DAF_mode=args.DAF,
                                 sheet_styling_config=sheet_styling_config
                             )
 
@@ -895,7 +895,7 @@ def main():
                 summary_flag = sheet_mapping_section.get("summary", False)
                 sheet_inner_mapping_rules_dict = sheet_mapping_section.get('mappings', {})
 
-                if summary_flag and processing_successful and last_table_header_info and args.fob:
+                if summary_flag and processing_successful and last_table_header_info and args.DAF:
                     # Get the footer config to pass its styles to the summary writer
                     footer_config_for_summary = sheet_mapping_section.get("footer_configurations", {})
                     
@@ -908,7 +908,7 @@ def main():
                         footer_config=footer_config_for_summary, # <-- Pass the config here
                         mapping_rules=sheet_inner_mapping_rules_dict,
                         styling_config=sheet_styling_config,
-                        fob_mode=args.fob
+                        DAF_mode=args.DAF
                     )
                 # --- End Summary Rows Logic ---
                 # --- Apply Column Widths AFTER loop using the last header info ---

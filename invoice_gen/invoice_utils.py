@@ -247,7 +247,7 @@ def apply_row_merges(worksheet: Worksheet, row_num: int, num_cols: int, merge_ru
             # Log or handle other merge errors
             pass
 
-def _apply_cell_style(cell, column_id: Optional[str], sheet_styling_config: Optional[Dict[str, Any]] = None, fob_mode: Optional[bool] = False):
+def _apply_cell_style(cell, column_id: Optional[str], sheet_styling_config: Optional[Dict[str, Any]] = None, DAF_mode: Optional[bool] = False):
     """
     Applies font, alignment, and number format to a cell based on a column ID.
     """
@@ -283,10 +283,10 @@ def _apply_cell_style(cell, column_id: Optional[str], sheet_styling_config: Opti
             if number_format and cell.number_format != FORMAT_TEXT:
                 cell.number_format = number_format
         else:
-            # Non-PCS columns follow FOB mode logic
-            if number_format and cell.number_format != FORMAT_TEXT and not fob_mode:
+            # Non-PCS columns follow DAF mode logic
+            if number_format and cell.number_format != FORMAT_TEXT and not DAF_mode:
                 cell.number_format = number_format
-            elif number_format and cell.number_format != FORMAT_TEXT and fob_mode:
+            elif number_format and cell.number_format != FORMAT_TEXT and DAF_mode:
                 cell.number_format = FORMAT_NUMBER_COMMA_SEPARATED2
             elif cell.number_format != FORMAT_TEXT and (cell.number_format == FORMAT_GENERAL or cell.number_format is None):
                 if isinstance(cell.value, float): cell.number_format = FORMAT_NUMBER_COMMA_SEPARATED2
@@ -852,7 +852,7 @@ def apply_explicit_data_cell_merges_by_id(
     num_total_columns: int,
     merge_rules_data_cells: Dict[str, Dict[str, Any]], # e.g., {'col_item': {'rowspan': 2}}
     sheet_styling_config: Optional[Dict[str, Any]] = None,
-    fob_mode: Optional[bool] = False
+    DAF_mode: Optional[bool] = False
 ):
     """
     Applies horizontal merges to data cells in a specific row based on column IDs.
@@ -898,7 +898,7 @@ def apply_explicit_data_cell_merges_by_id(
             anchor_cell = worksheet.cell(row=row_num, column=start_col_idx)
             
             # Apply base styling for the column ID
-            _apply_cell_style(anchor_cell, col_id, sheet_styling_config, fob_mode)
+            _apply_cell_style(anchor_cell, col_id, sheet_styling_config, DAF_mode)
             
             # Ensure the merged cell has the desired border and alignment
             anchor_cell.border = full_thin_border
@@ -930,13 +930,13 @@ def _apply_fallback(
     row_dict: Dict[int, Any],
     target_col_idx: int,
     mapping_rule: Dict[str, Any],
-    fob_mode: bool
+    DAF_mode: bool
 ):
     """
-    Applies a fallback value to the row_dict based on the fob_mode.
+    Applies a fallback value to the row_dict based on the DAF_mode.
     """
-    if fob_mode:
-        fallback_key = "fallback_on_fob"
+    if DAF_mode:
+        fallback_key = "fallback_on_DAF"
     else:
         fallback_key = "fallback_on_none"
         
@@ -952,7 +952,7 @@ def prepare_data_rows(
     desc_col_idx: int,
     num_static_labels: int,
     static_value_map: Dict[int, Any],
-    fob_mode: bool,
+    DAF_mode: bool,
 ) -> Tuple[List[Dict[int, Any]], List[int], bool, int]:
     """
     Corrected version with typo fix and improved fallback flexibility.
@@ -964,15 +964,15 @@ def prepare_data_rows(
     
     NUMERIC_IDS = {"col_qty_pcs", "col_qty_sf", "col_unit_price", "col_amount", "col_net", "col_gross", "col_cbm"}
 
-    # --- Handler for FOB Aggregation (Uses new fallback logic) ---
-    if data_source_type == 'fob_aggregation':
-        fob_data = data_source or {}
-        num_data_rows_from_source = len(fob_data)
+    # --- Handler for DAF Aggregation (Uses new fallback logic) ---
+    if data_source_type == 'DAF_aggregation':
+        DAF_data = data_source or {}
+        num_data_rows_from_source = len(DAF_data)
         id_to_data_key_map = {"col_po": "combined_po", "col_item": "combined_item", "col_desc": "combined_description", "col_qty_sf": "total_sqft", "col_amount": "total_amount"}
         price_col_idx = column_id_map.get("col_unit_price")
         
-        for row_key in sorted(fob_data.keys()):
-            row_value_dict = fob_data.get(row_key, {})
+        for row_key in sorted(DAF_data.keys()):
+            row_value_dict = DAF_data.get(row_key, {})
             row_dict = {}
             for col_id, data_key in id_to_data_key_map.items():
                 target_col_idx = column_id_map.get(col_id)
@@ -991,13 +991,13 @@ def prepare_data_rows(
                         if rule.get("id") == col_id:
                             mapping_rule_for_id = rule
                             break
-                    _apply_fallback(row_dict, target_col_idx, mapping_rule_for_id, fob_mode)
+                    _apply_fallback(row_dict, target_col_idx, mapping_rule_for_id, DAF_mode)
 
             if price_col_idx:
                 row_dict[price_col_idx] = {"type": "formula", "template": "{col_ref_1}{row}/{col_ref_0}{row}", "inputs": ["col_qty_sf", "col_amount"]}
             data_rows_prepared.append(row_dict)
 
-    # --- Handler for Custom Aggregation (FOB Check and Fallback Added) ---
+    # --- Handler for Custom Aggregation (DAF Check and Fallback Added) ---
     elif data_source_type == 'custom_aggregation':
         custom_data = data_source or {}
         num_data_rows_from_source = len(custom_data)
@@ -1020,7 +1020,7 @@ def prepare_data_rows(
                     row_dict[desc_col_idx_local] = desc_value
                     dynamic_desc_used = True
             
-            # Apply fallbacks for any unmapped columns based on fob_mode
+            # Apply fallbacks for any unmapped columns based on DAF_mode
             for header, mapping_rule in dynamic_mapping_rules.items():
                 target_id = mapping_rule.get("id")
                 target_col_idx = column_id_map.get(target_id)
@@ -1029,8 +1029,8 @@ def prepare_data_rows(
 
                 # If the column is not already populated, apply the appropriate fallback.
                 # The _apply_fallback function should handle the logic for
-                # 'fallback_on_non' vs 'fallback_fob' based on the fob_mode flag.
-                _apply_fallback(row_dict, target_col_idx, mapping_rule, fob_mode)
+                # 'fallback_on_non' vs 'fallback_DAF' based on the DAF_mode flag.
+                _apply_fallback(row_dict, target_col_idx, mapping_rule, DAF_mode)
 
             if price_col_idx:
                 row_dict[price_col_idx] = {"type": "formula", "template": "{col_ref_1}{row}/{col_ref_0}{row}", "inputs": ["col_qty_sf", "col_amount"]}
@@ -1084,7 +1084,7 @@ def prepare_data_rows(
                     if target_id == 'col_desc':
                         dynamic_desc_used = True
                 else:
-                    _apply_fallback(row_dict, target_col_idx, mapping_rule, fob_mode)
+                    _apply_fallback(row_dict, target_col_idx, mapping_rule, DAF_mode)
             
             if data_source_type == 'aggregation':
                 amount_col_idx = column_id_map.get("col_amount")
@@ -1222,7 +1222,7 @@ def write_summary_rows(
     footer_config: Dict[str, Any],
     mapping_rules: Dict[str, Any],
     styling_config: Optional[Dict[str, Any]] = None,
-    fob_mode: Optional[bool] = False
+    DAF_mode: Optional[bool] = False
 ) -> int:
     """
     Calculates and writes ID-driven summary rows, ensuring text cells are
@@ -1351,7 +1351,7 @@ def write_footer_row(
     footer_config: Dict[str, Any],
     pallet_count: int,
     override_total_text: Optional[str] = None,
-    fob_mode: bool = False,
+    DAF_mode: bool = False,
     grand_total_flag: bool = False,
     sheet_styling_config: Optional[Dict[str, Any]] = None
 ) -> int:
@@ -1373,7 +1373,7 @@ def write_footer_row(
                       - Raw indices as strings: {"start_column_id": "2", "colspan": 3}
         pallet_count: The total number of pallets to display in the footer.
         override_total_text: Optional text to use instead of the one in the config.
-        fob_mode: Whether FOB mode is enabled.
+        DAF_mode: Whether DAF mode is enabled.
         grand_total_flag: Whether this is a grand total footer.
 
     Returns:
@@ -1476,9 +1476,9 @@ def write_footer_row(
                     cell.font = font_to_apply
                     cell.alignment = align_to_apply
                     
-                    # Apply Number Formatting from Config if fob
+                    # Apply Number Formatting from Config if DAF
                     number_format_str = number_format_config.get(col_id)
-                    if number_format_str and fob_mode and col_id not in ['col_pcs', 'col_qty_pcs']:
+                    if number_format_str and DAF_mode and col_id not in ['col_pcs', 'col_qty_pcs']:
                         cell.number_format = "##,00.00"
                     elif number_format_str:
                         cell.number_format = number_format_str["number_format"]
@@ -1556,7 +1556,7 @@ def _style_row_before_footer(
     sheet_styling_config: Optional[Dict[str, Any]],
     idx_to_id_map: Dict[int, str],
     col1_index: int, # The index of the first column to receive special border handling
-    fob_mode: bool
+    DAF_mode: bool
 ):
     """
     Applies column-specific styles, a full border, and a specific height
@@ -1594,7 +1594,7 @@ def _style_row_before_footer(
             current_col_id = idx_to_id_map.get(c_idx)
 
             # 1. Apply font, alignment, and number formats based on the column ID.
-            _apply_cell_style(cell, current_col_id, sheet_styling_config, fob_mode)
+            _apply_cell_style(cell, current_col_id, sheet_styling_config, DAF_mode)
 
             # --- START: Refactored Logic ---
             # 2. Apply a conditional border based on the column index.
@@ -1633,12 +1633,12 @@ def fill_invoice_data(
     grand_total_pallets: int = 0, # RE-ADDED parameter
     custom_flag: bool = False, # Added custom flag parameter
     data_cell_merging_rules: Optional[Dict[str, Any]] = None, # Added data cell merging rules 29/05/2025
-    fob_mode: Optional[bool] = False,
+    DAF_mode: Optional[bool] = False,
     ) -> Tuple[bool, int, int, int, int]: # Still 5 return values
     """
     REVISED LOGIC V13: Added merge_rules_footer parameter.
     Footer pallet count uses local_chunk_pallets for processed_tables,
-    and grand_total_pallets for aggregation/fob_aggregation.
+    and grand_total_pallets for aggregation/DAF_aggregation.
     """
 
     # --- Initialize Variables --- (Keep existing initializations)
@@ -1770,7 +1770,7 @@ def fill_invoice_data(
             desc_col_idx=desc_col_idx,
             num_static_labels=num_static_labels,
             static_value_map=static_value_map,
-            fob_mode=fob_mode,
+            DAF_mode=DAF_mode,
         )
 # --- Determine Final Number of Data Rows ---
 # The number of rows to process is the greater of the number of data rows or static labels.
@@ -1819,7 +1819,7 @@ def fill_invoice_data(
         total_rows_to_insert += 1 # Add 1 for the footer itself
 
         # --- Bulk Insert Rows --- # V11: Only insert if NOT pre-inserted by caller (i.e., for single-table modes)
-        if data_source_type in ['aggregation', 'fob_aggregation', "custom_aggregation"]:
+        if data_source_type in ['aggregation', 'DAF_aggregation', "custom_aggregation"]:
             if total_rows_to_insert > 0:
                 try:
                     worksheet.insert_rows(data_writing_start_row, amount=total_rows_to_insert)
@@ -1834,9 +1834,9 @@ def fill_invoice_data(
 
         # --- Fill Row After Header (if applicable) --- 
 
-        # --- Prepare FOB Data Dictionary (inside loop now, safer) ---
+        # --- Prepare DAF Data Dictionary (inside loop now, safer) ---
         # Removed the premature preparation block here.
-        # FOB data dict will be prepared inside the loop if data_source_type is fob_aggregation.
+        # DAF data dict will be prepared inside the loop if data_source_type is DAF_aggregation.
 
         # --- Fill Data Rows Loop ---
         if actual_rows_to_process > 0:
@@ -1928,7 +1928,7 @@ def fill_invoice_data(
                     if current_id in force_text_format_ids:
                         cell.number_format = FORMAT_TEXT
                     
-                    _apply_cell_style(cell, current_id, sheet_styling_config, fob_mode)
+                    _apply_cell_style(cell, current_id, sheet_styling_config, DAF_mode)
 
                 # --- Apply Border Rules for the entire row ---
                 for c_idx_border in range(1, num_columns + 1):
@@ -1956,7 +1956,7 @@ def fill_invoice_data(
                         num_total_columns=num_columns,
                         merge_rules_data_cells=data_cell_merging_rules,
                         sheet_styling_config=sheet_styling_config,
-                        fob_mode=fob_mode
+                        DAF_mode=DAF_mode
                     )
 
         except Exception as fill_data_err:
@@ -2011,7 +2011,7 @@ def fill_invoice_data(
                     sheet_styling_config=sheet_styling_config,
                     idx_to_id_map=idx_to_id_map, # Pass the ID map here
                     col1_index=col1_index,
-                    fob_mode=fob_mode)
+                    DAF_mode=DAF_mode)
             except Exception as fill_bf_err:
                 print(f"Warning: Error filling/styling row before footer: {fill_bf_err}")
         
@@ -2037,7 +2037,7 @@ def fill_invoice_data(
                 sum_ranges=data_range_to_sum,
                 footer_config=footer_config,
                 pallet_count=pallet_count,
-                fob_mode=data_source_type == "fob_aggregation",
+                DAF_mode=data_source_type == "DAF_aggregation",
                 sheet_styling_config=sheet_styling_config
             )
     # No need to pass font, alignment, num_columns, etc. as the

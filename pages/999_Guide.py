@@ -203,7 +203,7 @@ with tab3:
             "System automatically processes and validates data", 
             "Review validation results and missing fields",
             "Add optional overrides (Invoice No, Ref, Date, Containers)",
-            "Select invoice versions (Normal, FOB, Combine)",
+            "Select invoice versions (Normal, DAF, Combine)",
             "Generate and download final invoices as ZIP"
         ])
         for i, step in enumerate(high_quality_steps, 1):

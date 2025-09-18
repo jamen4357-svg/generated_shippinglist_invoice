@@ -401,9 +401,15 @@ class RowProcessor:
     
     def _unmerge_cells_in_range(self, worksheet: Worksheet, start_row: int, end_row: int) -> None:
         """
-        Unmerge only cells that are completely contained within the deletion range.
-        This preserves merges that extend beyond the deletion area.
+        Unmerge ALL cells that could be affected by the row deletion operation.
+        This includes:
+        1. Merges that intersect with the deletion range
+        2. Merges that start at or below the deletion range (these get shifted up)
         
+        When rows are deleted, cells below the deletion point get shifted up.
+        Any merge that was below the deletion range will have invalid coordinates
+        after the shift, so we must unmerge them all.
+
         Args:
             worksheet: The worksheet to modify
             start_row: Starting row number (inclusive)
@@ -413,29 +419,32 @@ class RowProcessor:
         merged_ranges_copy = list(worksheet.merged_cells.ranges)
         unmerged_count = 0
         preserved_count = 0
-        
-        logger.debug(f"Checking {len(merged_ranges_copy)} merged ranges for deletion conflicts with rows {start_row}-{end_row}")
-        
+
+        logger.debug(f"Checking {len(merged_ranges_copy)} merged ranges for conflicts with deletion rows {start_row}-{end_row}")
+
         for merged_range in merged_ranges_copy:
-            if self._merge_completely_within_deletion_range(merged_range.min_row, merged_range.max_row, start_row, end_row):
-                # Merge is completely within deletion range - safe to unmerge
+            # CRITICAL FIX: Unmerge ALL merges that start at or below the deletion START row
+            # When rows are deleted, ALL merges from the deletion start downward get shifted up
+            # and their coordinates become invalid, so we must unmerge them all
+            if merged_range.min_row >= start_row:
+                # This merge starts at or below the deletion range and will be shifted up
                 try:
-                    logger.debug(f"Unmerging merge completely within deletion range: {merged_range.coord}")
+                    logger.debug(f"Unmerging merge that will be shifted up: {merged_range.coord} (starts at row {merged_range.min_row})")
                     worksheet.unmerge_cells(str(merged_range))
                     unmerged_count += 1
                 except Exception as e:
                     logger.warning(f"Failed to unmerge range {merged_range.coord}: {e}")
-            elif self._ranges_intersect(merged_range.min_row, merged_range.max_row, start_row, end_row):
-                # Merge extends beyond deletion range - preserve it
-                logger.debug(f"Preserving merge that extends beyond deletion range: {merged_range.coord}")
+            else:
+                # Merge starts above the deletion range and won't be affected
+                logger.debug(f"Preserving merge above deletion range: {merged_range.coord}")
                 preserved_count += 1
-        
+
         if unmerged_count > 0:
-            logger.info(f"Unmerged {unmerged_count} merges completely within deletion range")
+            logger.info(f"Unmerged {unmerged_count} merges that could be affected by row deletion")
         if preserved_count > 0:
-            logger.info(f"Preserved {preserved_count} merges that extend beyond deletion range")
+            logger.info(f"Preserved {preserved_count} merges completely below deletion range")
         if unmerged_count == 0 and preserved_count == 0:
-            logger.debug("No merges found in deletion range")
+            logger.debug("No merges found in worksheet")
     
     def _merge_completely_within_deletion_range(self, merge_start: int, merge_end: int, delete_start: int, delete_end: int) -> bool:
         """

@@ -839,11 +839,11 @@
     "directory_info": {
       "original_filename": "CT&INV&PL JF25045 FCA(1).xlsx",
       "original_stem": "CT&INV&PL JF25045 FCA(1)",
-      "enhanced_directory": "CT&INV&PL JF25045 FCA(1)_20250918_124927_0b5492",
-      "timestamp": "2025-09-18T12:49:27.864191",
+      "enhanced_directory": "CT&INV&PL JF25045 FCA(1)_20250918_155303_0b5492",
+      "timestamp": "2025-09-18T15:53:03.689576",
       "similar_names_detected": [],
       "collision_prevention": {
-        "timestamp_added": "20250918_124927",
+        "timestamp_added": "20250918_155303",
         "hash_suffix": "0b5492",
         "reason": "Enhanced naming to prevent directory collisions and confusion"
       }

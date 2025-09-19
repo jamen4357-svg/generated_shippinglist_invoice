@@ -73,10 +73,22 @@ class FallbackUpdater:
         """
         mappings = sheet.get('mappings', {})
 
-        # Update description mapping if it exists
+        # Check for description in different possible locations and keys
+        desc_mapping = None
+        # Check direct mappings
         if 'description' in mappings:
             desc_mapping = mappings['description']
+        elif 'desc' in mappings:
+            desc_mapping = mappings['desc']
+        # Check data_map
+        elif 'data_map' in mappings:
+            if 'description' in mappings['data_map']:
+                desc_mapping = mappings['data_map']['description']
+            elif 'desc' in mappings['data_map']:
+                desc_mapping = mappings['data_map']['desc']
+            desc_mapping = mappings['data_map']['description']
 
+        if desc_mapping:
             # Replace fallback_on_none with the extracted text
             if 'fallback_on_none' in desc_mapping:
                 desc_mapping['fallback_on_none'] = fallback_text
@@ -88,7 +100,7 @@ class FallbackUpdater:
         # Update initial_static values
         if 'initial_static' in mappings and 'values' in mappings['initial_static']:
             values = mappings['initial_static']['values']
-            # Replace "Des: LEATHER" patterns with "Des: [actual fallback text]"
+            # Replace "Des: LEATHER" patterns with "Des: [DAF fallback text]"
             for i, value in enumerate(values):
                 if isinstance(value, str) and value.startswith('Des: '):
-                    values[i] = f"Des: {fallback_text}"
+                    values[i] = f"Des: {daf_fallback_text}"

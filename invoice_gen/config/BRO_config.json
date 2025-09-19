@@ -88,7 +88,7 @@
           "key_index": 3,
           "id": "col_desc",
           "fallback_on_none": "COW LEATHER\nDA BÒ THUỘC",
-          "fallback_on_DAF": "COW LEATHER"
+          "fallback_on_DAF": "COW LEATHER DA B THUC"
         },
         "sqft": {
           "value_key": "sqft_sum",
@@ -115,7 +115,7 @@
           "column_header_id": "col_static",
           "values": [
             "VENDOR#:",
-            "Des: COW LEATHER",
+            "Des: COW LEATHER\nDA BÒ THUỘC",
             "MADE IN CAMBODIA"
           ]
         }
@@ -312,7 +312,7 @@
           "key_index": 3,
           "id": "col_desc",
           "fallback_on_none": "COW LEATHER\nDA BÒ THUỘC",
-          "fallback_on_DAF": "COW LEATHER"
+          "fallback_on_DAF": "COW LEATHER DA B THUC"
         },
         "sqft": {
           "value_key": "sqft_sum",
@@ -554,7 +554,7 @@
           "column_header_id": "col_static",
           "values": [
             "VENDOR#:",
-            "Des: COW LEATHER",
+            "Des: COW LEATHER\nDA BÒ THUỘC",
             "Case Qty:",
             "MADE IN CAMBODIA"
           ]
@@ -569,7 +569,7 @@
           "description": {
             "id": "col_desc",
             "fallback_on_none": "COW LEATHER\nDA BÒ THUỘC",
-            "fallback_on_DAF": "COW LEATHER"
+            "fallback_on_DAF": "COW LEATHER DA B THUC"
           },
           "pcs": {
             "id": "col_qty_pcs"
@@ -776,11 +776,11 @@
     "directory_info": {
       "original_filename": "CT&INV&PL OJY25018 FCA(4).xlsx",
       "original_stem": "CT&INV&PL OJY25018 FCA(4)",
-      "enhanced_directory": "CT&INV&PL OJY25018 FCA(4)_20250919_092827_1784f9",
-      "timestamp": "2025-09-19T09:28:27.403737",
+      "enhanced_directory": "CT&INV&PL OJY25018 FCA(4)_20250919_091634_1784f9",
+      "timestamp": "2025-09-19T09:16:34.776043",
       "similar_names_detected": [],
       "collision_prevention": {
-        "timestamp_added": "20250919_092827",
+        "timestamp_added": "20250919_091634",
         "hash_suffix": "1784f9",
         "reason": "Enhanced naming to prevent directory collisions and confusion"
       }

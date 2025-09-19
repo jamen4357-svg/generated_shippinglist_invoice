@@ -31,7 +31,7 @@ class ExcelAnalyzer:
             quantity_mode: If True, adds PCS and SQFT columns for packing list sheets
             mapping_config: Optional mapping configuration for column ID mapping
         """
-        self.header_detector = HeaderDetector(quantity_mode=quantity_mode)
+        self.header_detector = HeaderDetector(quantity_mode=quantity_mode, mapping_config=mapping_config)
         self.font_extractor = FontExtractor()
         self.number_format_extractor = NumberFormatExtractor()
         self.alignment_extractor = AlignmentExtractor()

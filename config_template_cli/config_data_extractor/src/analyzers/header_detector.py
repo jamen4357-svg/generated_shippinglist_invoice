@@ -5,7 +5,10 @@ This module provides the HeaderDetector class that searches for specific header 
 and determines the start row for data insertion.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict
+import json
+import os
+from pathlib import Path
 from openpyxl.worksheet.worksheet import Worksheet
 from models.data_models import HeaderMatch
 
@@ -13,24 +16,93 @@ from models.data_models import HeaderMatch
 class HeaderDetector:
     """Detects header keywords and calculates start row positions."""
     
-    # Core header keywords to search for
-    HEADER_KEYWORDS = [
-        "P.O", "ITEM", "Description", "Quantity", "Amount"
-    ]
-    
-    def __init__(self, quantity_mode: bool = False):
+    def __init__(self, quantity_mode: bool = False, mapping_config: Optional[Dict] = None):
         """Initialize the HeaderDetector.
         
         Args:
             quantity_mode: If True, adds PCS and SQFT columns for packing list sheets
+            mapping_config: Optional mapping configuration dictionary
         """
         self.quantity_mode = quantity_mode
+        self.mapping_config = mapping_config
+        self.header_keywords = self._load_header_keywords()
+    
+    def _load_header_keywords(self) -> List[str]:
+        """Load header keywords from mapping config or use defaults."""
+        keywords = set()
+        
+        # Try to load from mapping config first
+        if self.mapping_config:
+            try:
+                header_mappings = self.mapping_config.get('header_text_mappings', {}).get('mappings', {})
+                for header in header_mappings.keys():
+                    # Extract base keywords from headers
+                    keywords.update(self._extract_keywords_from_header(header))
+            except Exception as e:
+                print(f"Warning: Could not load keywords from mapping config: {e}")
+        
+        # If no keywords loaded from config, use defaults
+        if not keywords:
+            keywords.update([
+                "P.O", "ITEM", "Description", "Quantity", "Amount",
+                "Mark", "Unit price", "Price", "Total", "Weight", "CBM", "Pallet",
+                "Remarks", "HS CODE", "Name", "Commodity", "Goods", "Product",
+                "PCS", "SF", "No.", "N.W", "G.W", "Net", "Gross", "FCA"
+            ])
+        
+        return list(keywords)
+    
+    def _extract_keywords_from_header(self, header: str) -> List[str]:
+        """Extract meaningful keywords from a header string, focusing on header-specific terms."""
+        import re
+        
+        keywords = []
+        header_lower = header.lower()
+        
+        # Skip very generic words that are likely to appear in data
+        generic_words = {
+            'name', 'total', 'amount', 'price', 'quantity', 'number', 'no', 'code', 
+            'item', 'description', 'value', 'rate', 'cost', 'sum', 'count', 'type'
+        }
+        
+        # Split by common separators and extract meaningful words
+        words = re.split(r'[&\s\(\)\[\]\{\}\.,;:\-\+\\\/\|\*\^\%\$\#\@\!\?\=\<\>]+', header_lower)
+        words = [word.strip() for word in words if word.strip() and len(word.strip()) > 1]
+        
+        # Only add words that are NOT in the generic list
+        for word in words:
+            if word not in generic_words:
+                keywords.append(word)
+        
+        # Add specific header combinations that are reliable indicators
+        if 'unit' in header_lower and 'price' in header_lower:
+            keywords.append('unit price')
+        if 'gross' in header_lower and 'weight' in header_lower:
+            keywords.append('gross weight')
+        if 'net' in header_lower and 'weight' in header_lower:
+            keywords.append('net weight')
+        if 'p.o' in header_lower:
+            keywords.append('p.o')
+        if 'hs' in header_lower and 'code' in header_lower:
+            keywords.append('hs code')
+        if 'mark' in header_lower:
+            keywords.append('mark')
+        if 'remarks' in header_lower:
+            keywords.append('remarks')
+        if 'pallet' in header_lower:
+            keywords.append('pallet')
+        if 'cbm' in header_lower:
+            keywords.append('cbm')
+        
+        return keywords
     
     def find_headers(self, worksheet: Worksheet) -> List[HeaderMatch]:
         """
         Search for header keywords in the worksheet and record their positions.
-        Once a header row is found, extract all headers from that entire row.
-        Handles both single-row and two-row headers by checking for merged cells.
+        Uses multiple heuristics to identify the most likely header row:
+        - Only considers first 20 rows (headers are usually near top)
+        - Requires multiple keyword matches for confidence
+        - Prefers rows with many text cells
         
         Args:
             worksheet: The openpyxl worksheet to analyze
@@ -39,25 +111,59 @@ class HeaderDetector:
             List of HeaderMatch objects containing keyword, row, and column positions
         """
         header_matches = []
-        header_row_found = None
+        candidate_rows = []
         
-        # First pass: Find any header keyword to identify the header row
-        for row in worksheet.iter_rows():
+        # First pass: Find candidate header rows with keyword matches
+        max_rows_to_check = min(20, worksheet.max_row)  # Only check first 20 rows
+        
+        for row_idx in range(1, max_rows_to_check + 1):
+            row = worksheet[row_idx]
+            keyword_matches = []
+            text_cell_count = 0
+            
             for cell in row:
                 if cell.value is not None:
                     cell_value = str(cell.value).strip()
-                    
-                    # Check if cell contains any of our header keywords
-                    for keyword in self.HEADER_KEYWORDS:
-                        if self._matches_keyword(cell_value, keyword):
-                            header_row_found = cell.row
-                            break
-                    
-                    if header_row_found:
-                        break
+                    if cell_value:  # Non-empty cell
+                        text_cell_count += 1
+                        
+                        # Check if cell contains any of our header keywords
+                        for keyword in self.header_keywords:
+                            if self._matches_keyword(cell_value, keyword):
+                                keyword_matches.append((cell_value, cell.column))
+                                break
             
-            if header_row_found:
-                break
+            # Only consider rows with at least 2 keyword matches AND at least 3 text cells
+            # This helps distinguish header rows from data rows
+            if len(keyword_matches) >= 2 and text_cell_count >= 3:
+                candidate_rows.append({
+                    'row': row_idx,
+                    'keyword_count': len(keyword_matches),
+                    'text_cell_count': text_cell_count,
+                    'matches': keyword_matches
+                })
+        
+        # Select the best candidate row
+        if candidate_rows:
+            # Sort by keyword count (descending), then by text cell count (descending)
+            candidate_rows.sort(key=lambda x: (x['keyword_count'], x['text_cell_count']), reverse=True)
+            best_candidate = candidate_rows[0]
+            header_row_found = best_candidate['row']
+        else:
+            # Fallback to original logic if no good candidates found
+            header_row_found = None
+            for row in worksheet.iter_rows():
+                for cell in row:
+                    if cell.value is not None:
+                        cell_value = str(cell.value).strip()
+                        for keyword in self.header_keywords:
+                            if self._matches_keyword(cell_value, keyword):
+                                header_row_found = cell.row
+                                break
+                        if header_row_found:
+                            break
+                if header_row_found:
+                    break
         
         # If we found a header row, determine if it's a single or double header
         if header_row_found:

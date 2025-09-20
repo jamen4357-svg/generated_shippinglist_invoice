@@ -286,17 +286,55 @@
       }
     },
     "Contract": {
-      "start_row": 1,
+      "start_row": 20,
       "header_to_write": [
         {
-          "text": "Default Header",
-          "row": 1,
-          "col": 1,
+          "row": 0,
+          "col": 0,
+          "text": "P.O Nº",
+          "id": "col_po",
           "rowspan": 1,
-          "colspan": 1,
-          "font_size": 11,
-          "bold": true,
-          "align": "center"
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "text": "Name of Cormodity\nTên và miêu tả",
+          "id": "col_item",
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "text": "Description\nTả hàng hóa",
+          "id": "col_desc",
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "text": "Quantity(SF)\nSố lượng(SF)",
+          "id": "col_qty_sf",
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "text": "Unit Price(USD)\nĐơn giá",
+          "id": "col_unit_price",
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "text": "Total value(USD)\nTrị giá",
+          "id": "col_amount",
+          "rowspan": 1,
+          "colspan": 1
         }
       ],
       "mappings": {
@@ -316,11 +354,13 @@
         },
         "sqft": {
           "value_key": "sqft_sum",
-          "id": "col_qty_sf"
+          "id": "col_qty_sf",
+          "number_format": "#,##0.00"
         },
         "unit_price": {
           "key_index": 2,
-          "id": "col_unit_price"
+          "id": "col_unit_price",
+          "number_format": "#,##0.0000000"
         },
         "amount": {
           "id": "col_amount",
@@ -329,12 +369,13 @@
           "inputs": [
             "col_qty_sf",
             "col_unit_price"
-          ]
+          ],
+          "number_format": "#,##0.00"
         }
       },
       "footer_configurations": {
-        "total_text": "TOTAL:",
-        "total_text_column_id": "col_no",
+        "total_text": "TOTAL AMOUNT(Tổng trị giá):",
+        "total_text_column_id": 0,
         "sum_column_ids": [
           "col_qty_pcs",
           "col_qty_sf",
@@ -361,18 +402,21 @@
           },
           "col_amount": {
             "number_format": "#,##0.00"
+          },
+          "col_unit_price": {
+            "number_format": "#,##0.0000000"
           }
         },
         "merge_rules": [
           {
-            "start_column_id": "col_no",
+            "start_column_id": 0,
             "colspan": 2
           }
         ],
         "style": {
           "font": {
-            "name": "Calibri",
-            "size": 11.0,
+            "name": "Times New Roman",
+            "size": 10.0,
             "bold": true
           },
           "alignment": {
@@ -386,12 +430,12 @@
       },
       "styling": {
         "default_font": {
-          "name": "Calibri",
-          "size": 11.0
+          "name": "Times New Roman",
+          "size": 10.0
         },
         "header_font": {
-          "name": "Calibri",
-          "size": 11.0,
+          "name": "Times New Roman",
+          "size": 10.0,
           "bold": true
         },
         "default_alignment": {
@@ -422,17 +466,42 @@
         ],
         "column_id_styles": {
           "col_amount": {
-            "number_format": "#,##0.00"
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
           },
           "col_unit_price": {
-            "number_format": "#,##0.00"
+            "number_format": "#,##0.0000000",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
           },
           "col_qty_sf": {
-            "number_format": "#,##0.00"
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
           },
           "col_desc": {
             "alignment": {
-              "horizontal": "left"
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_po": {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_item": {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
             }
           }
         },
@@ -776,11 +845,11 @@
     "directory_info": {
       "original_filename": "CT&INV&PL OJY25018 FCA(4).xlsx",
       "original_stem": "CT&INV&PL OJY25018 FCA(4)",
-      "enhanced_directory": "CT&INV&PL OJY25018 FCA(4)_20250919_092827_1784f9",
-      "timestamp": "2025-09-19T09:28:27.403737",
+      "enhanced_directory": "CT&INV&PL OJY25018 FCA(4)_20250920_080915_1784f9",
+      "timestamp": "2025-09-20T08:09:15.780359",
       "similar_names_detected": [],
       "collision_prevention": {
-        "timestamp_added": "20250919_092827",
+        "timestamp_added": "20250920_080915",
         "hash_suffix": "1784f9",
         "reason": "Enhanced naming to prevent directory collisions and confusion"
       }

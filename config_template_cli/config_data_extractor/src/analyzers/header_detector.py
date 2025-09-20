@@ -26,6 +26,7 @@ class HeaderDetector:
         self.quantity_mode = quantity_mode
         self.mapping_config = mapping_config
         self.header_keywords = self._load_header_keywords()
+        self.exact_headers = getattr(self, 'exact_headers', [])
     
     def _load_header_keywords(self) -> List[str]:
         """Load header keywords from mapping config or use defaults."""
@@ -35,14 +36,18 @@ class HeaderDetector:
         if self.mapping_config:
             try:
                 header_mappings = self.mapping_config.get('header_text_mappings', {}).get('mappings', {})
+                # Use the actual header names as exact match targets
+                self.exact_headers = list(header_mappings.keys())
+                # Also extract keywords for partial matching as fallback
                 for header in header_mappings.keys():
-                    # Extract base keywords from headers
                     keywords.update(self._extract_keywords_from_header(header))
             except Exception as e:
-                print(f"Warning: Could not load keywords from mapping config: {e}")
+                print(f"Warning: Could not load headers from mapping config: {e}")
+                self.exact_headers = []
         
         # If no keywords loaded from config, use defaults
         if not keywords:
+            self.exact_headers = []
             keywords.update([
                 "P.O", "ITEM", "Description", "Quantity", "Amount",
                 "Mark", "Unit price", "Price", "Total", "Weight", "CBM", "Pallet",
@@ -98,11 +103,8 @@ class HeaderDetector:
     
     def find_headers(self, worksheet: Worksheet) -> List[HeaderMatch]:
         """
-        Search for header keywords in the worksheet and record their positions.
-        Uses multiple heuristics to identify the most likely header row:
-        - Only considers first 20 rows (headers are usually near top)
-        - Requires multiple keyword matches for confidence
-        - Prefers rows with many text cells
+        Search for exact header matches in the worksheet.
+        Uses known headers from mapping config for precise detection.
         
         Args:
             worksheet: The openpyxl worksheet to analyze
@@ -111,61 +113,15 @@ class HeaderDetector:
             List of HeaderMatch objects containing keyword, row, and column positions
         """
         header_matches = []
-        candidate_rows = []
         
-        # First pass: Find candidate header rows with keyword matches
-        max_rows_to_check = min(20, worksheet.max_row)  # Only check first 20 rows
-        
-        for row_idx in range(1, max_rows_to_check + 1):
-            row = worksheet[row_idx]
-            keyword_matches = []
-            text_cell_count = 0
-            
-            for cell in row:
-                if cell.value is not None:
-                    cell_value = str(cell.value).strip()
-                    if cell_value:  # Non-empty cell
-                        text_cell_count += 1
-                        
-                        # Check if cell contains any of our header keywords
-                        for keyword in self.header_keywords:
-                            if self._matches_keyword(cell_value, keyword):
-                                keyword_matches.append((cell_value, cell.column))
-                                break
-            
-            # Only consider rows with at least 2 keyword matches AND at least 3 text cells
-            # This helps distinguish header rows from data rows
-            if len(keyword_matches) >= 2 and text_cell_count >= 3:
-                candidate_rows.append({
-                    'row': row_idx,
-                    'keyword_count': len(keyword_matches),
-                    'text_cell_count': text_cell_count,
-                    'matches': keyword_matches
-                })
-        
-        # Select the best candidate row
-        if candidate_rows:
-            # Sort by keyword count (descending), then by text cell count (descending)
-            candidate_rows.sort(key=lambda x: (x['keyword_count'], x['text_cell_count']), reverse=True)
-            best_candidate = candidate_rows[0]
-            header_row_found = best_candidate['row']
+        # If we have exact headers from mapping config, use them for precise detection
+        if self.exact_headers:
+            header_row_found = self._find_header_row_by_exact_match(worksheet)
         else:
-            # Fallback to original logic if no good candidates found
-            header_row_found = None
-            for row in worksheet.iter_rows():
-                for cell in row:
-                    if cell.value is not None:
-                        cell_value = str(cell.value).strip()
-                        for keyword in self.header_keywords:
-                            if self._matches_keyword(cell_value, keyword):
-                                header_row_found = cell.row
-                                break
-                        if header_row_found:
-                            break
-                if header_row_found:
-                    break
+            # Fallback to keyword-based detection
+            header_row_found = self._find_header_row_by_keywords(worksheet)
         
-        # If we found a header row, determine if it's a single or double header
+        # If we found a header row, extract all headers from that row
         if header_row_found:
             is_double_header = self._is_double_header(worksheet, header_row_found)
             
@@ -181,6 +137,90 @@ class HeaderDetector:
                 header_matches = self._apply_quantity_mode_enhancement(header_matches, worksheet)
         
         return header_matches
+    
+    def _find_header_row_by_exact_match(self, worksheet: Worksheet) -> Optional[int]:
+        """
+        Find header row by looking for exact matches with known headers.
+        
+        Args:
+            worksheet: The worksheet to analyze
+            
+        Returns:
+            Row number of the header row, or None if not found
+        """
+        max_rows_to_check = min(30, worksheet.max_row)  # Check first 30 rows
+        best_row = None
+        best_score = 0
+        
+        for row_idx in range(1, max_rows_to_check + 1):
+            row = worksheet[row_idx]
+            exact_matches = 0
+            text_cells = 0
+            
+            for cell in row:
+                if cell.value is not None:
+                    cell_value = str(cell.value).strip()
+                    if cell_value:
+                        text_cells += 1
+                        
+                        # Check for exact match with known headers (case-insensitive)
+                        for known_header in self.exact_headers:
+                            if cell_value.lower() == known_header.lower():
+                                exact_matches += 1
+                                break
+            
+            # Score based on exact matches and text cell density
+            if exact_matches > 0:
+                score = exact_matches * 10 + text_cells  # Prioritize exact matches
+                if score > best_score:
+                    best_score = score
+                    best_row = row_idx
+        
+        return best_row
+    
+    def _find_header_row_by_keywords(self, worksheet: Worksheet) -> Optional[int]:
+        """
+        Fallback method using keyword matching when exact headers aren't available.
+        
+        Args:
+            worksheet: The worksheet to analyze
+            
+        Returns:
+            Row number of the header row, or None if not found
+        """
+        max_rows_to_check = min(20, worksheet.max_row)
+        candidate_rows = []
+        
+        for row_idx in range(1, max_rows_to_check + 1):
+            row = worksheet[row_idx]
+            keyword_matches = 0
+            text_cell_count = 0
+            
+            for cell in row:
+                if cell.value is not None:
+                    cell_value = str(cell.value).strip()
+                    if cell_value:
+                        text_cell_count += 1
+                        
+                        for keyword in self.header_keywords:
+                            if self._matches_keyword(cell_value, keyword):
+                                keyword_matches += 1
+                                break
+            
+            # Require at least 2 keyword matches and 3 text cells
+            if keyword_matches >= 2 and text_cell_count >= 3:
+                candidate_rows.append({
+                    'row': row_idx,
+                    'keyword_count': keyword_matches,
+                    'text_cell_count': text_cell_count
+                })
+        
+        if candidate_rows:
+            # Return the row with most keyword matches
+            candidate_rows.sort(key=lambda x: x['keyword_count'], reverse=True)
+            return candidate_rows[0]['row']
+        
+        return None
     
     def calculate_start_row(self, header_positions: List[HeaderMatch]) -> int:
         """

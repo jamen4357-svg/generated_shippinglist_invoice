@@ -612,6 +612,26 @@ def run_invoice_automation(input_excel_override: Optional[str] = None, output_di
         logging.info(f"Final processed data structure contains {len(processed_tables)} table(s).")
         logging.info(f"Primary aggregation mode used for DAF Compounding: {aggregation_mode_used.upper()}")
 
+        # --- Convert pallet_count to int ---
+        for table_index, table_data in processed_tables.items():
+            if 'pallet_count' in table_data and isinstance(table_data['pallet_count'], list):
+                logging.info(f"Converting pallet_count in table {table_index}")
+                for i, value in enumerate(table_data['pallet_count']):
+                    if value is not None:
+                        try:
+                            original_value = value
+                            converted_value = int(float(value))
+                            table_data['pallet_count'][i] = converted_value
+                            logging.info(f"Converted pallet_count[{i}] from '{original_value}' to {converted_value}")
+                        except (ValueError, TypeError):
+                            logging.warning(f"Could not convert pallet_count value '{value}' to int in table {table_index}, row {i}")
+                            table_data['pallet_count'][i] = value  # Keep original value if conversion fails
+
+        # Log the converted pallet_count
+        for table_index, table_data in processed_tables.items():
+            if 'pallet_count' in table_data:
+                logging.info(f"Final pallet_count in table {table_index}: {table_data['pallet_count']} (types: {[type(v) for v in table_data['pallet_count']]})")
+
         # --- Log Initial Aggregation Results (DEBUG Level) ---
         if logging.getLogger().getEffectiveLevel() <= logging.DEBUG:
             # Log Standard Results

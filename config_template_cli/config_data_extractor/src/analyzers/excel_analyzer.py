@@ -222,24 +222,7 @@ class ExcelAnalyzer:
             
         except Exception as e:
             print(f"Warning: Failed to detect weight summary in sheet '{sheet_name}': {str(e)}")
-            return False
-        """
-        Check if a list of row numbers are adjacent (consecutive).
-        
-        Args:
-            rows: List of row numbers
-            
-        Returns:
-            True if rows are consecutive, False otherwise
-        """
-        if len(rows) <= 1:
-            return False
-        
-        sorted_rows = sorted(rows)
-        for i in range(1, len(sorted_rows)):
-            if sorted_rows[i] != sorted_rows[i-1] + 1:
-                return False
-        return True
+        return False
     
     def analyze_and_output_text(self, file_path: str) -> str:
         """

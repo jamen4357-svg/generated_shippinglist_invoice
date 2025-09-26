@@ -303,8 +303,8 @@ class RowProcessor:
             logger.warning(f"No formula column found for header row {header_row}")
             return
         
-        # Find formula row (SUM formula)
-        formula_row = self._find_formula_row(worksheet, header_row, formula_col)
+        # Find formula row (SUM formula) - now looks for rows with 2+ SUM formulas
+        formula_row = self._find_formula_row(worksheet, header_row)
         if formula_row is None:
             logger.warning(f"No formula row found for header row {header_row}")
             return
@@ -346,30 +346,56 @@ class RowProcessor:
         
         return None
     
-    def _find_formula_row(self, worksheet: Worksheet, header_row: int, formula_col: int) -> Optional[int]:
+    def _find_formula_row(self, worksheet: Worksheet, header_row: int, formula_col: int = None) -> Optional[int]:
         """
-        Find the formula row (SUM formula) in the specified column.
+        Find the formula row (SUM formula) in the worksheet.
+        Now looks for rows with 2 or more SUM formulas to identify true table footers.
+        The formula_col parameter is kept for backward compatibility but is no longer used.
         
         Args:
             worksheet: The worksheet to search
             header_row: The header row number
-            formula_col: The column number to search
+            formula_col: (Deprecated) Column number to search - no longer used
             
         Returns:
             Row number of formula row, or None if not found
         """
-        # Search downward from header row
-        for row in range(header_row + 1, worksheet.max_row + 1):
-            cell = worksheet.cell(row=row, column=formula_col)
+        # Find all rows with SUM formulas in any column
+        sum_rows = []
+        for row in range(header_row + 1, min(header_row + 51, worksheet.max_row + 1)):
+            sum_count = 0
+            for col in range(1, worksheet.max_column + 1):
+                cell = worksheet.cell(row=row, column=col)
+                if cell.value is not None:
+                    cell_text = str(cell.value)
+                    # Check if cell contains a SUM formula
+                    for pattern in self.formula_patterns:
+                        if re.search(pattern, cell_text, re.IGNORECASE):
+                            sum_count += 1
+                            break
             
-            if cell.value is not None:
-                cell_text = str(cell.value)
-                
-                # Check if cell contains a SUM formula
-                for pattern in self.formula_patterns:
-                    if re.search(pattern, cell_text, re.IGNORECASE):
-                        logger.debug(f"Found formula row: {row} with formula: {cell_text}")
-                        return row
+            if sum_count >= 2:  # Row has 2 or more SUM formulas
+                sum_rows.append((row, sum_count))
+                logger.debug(f"Found footer row candidate: {row} with {sum_count} SUM formulas")
+        
+        if sum_rows:
+            # Return the first row with 2+ SUM formulas (closest to header)
+            best_row = sum_rows[0][0]
+            logger.debug(f"Selected footer row: {best_row} (first row with 2+ SUM formulas)")
+            return best_row
+        
+        # Fallback: if no row has 2+ SUM formulas, use the old logic
+        logger.warning("No rows found with 2+ SUM formulas, falling back to single SUM formula detection")
+        for row in range(header_row + 1, min(header_row + 51, worksheet.max_row + 1)):
+            for col in range(1, worksheet.max_column + 1):
+                cell = worksheet.cell(row=row, column=col)
+                if cell.value is not None:
+                    cell_text = str(cell.value)
+                    # Check if cell contains a SUM formula
+                    for pattern in self.formula_patterns:
+                        if re.search(pattern, cell_text, re.IGNORECASE):
+                            logger.debug(f"Found formula row (fallback): {row} with formula: {cell_text}")
+                            return row
         
         return None
     
@@ -570,7 +596,7 @@ class RowProcessor:
                 if self._is_header_row(worksheet, row):
                     formula_col = self._find_formula_column(worksheet, row)
                     if formula_col:
-                        formula_row = self._find_formula_row(worksheet, row, formula_col)
+                        formula_row = self._find_formula_row(worksheet, row)
                         if formula_row:
                             tables.append({
                                 'header_row': row,
@@ -612,7 +638,7 @@ class RowProcessor:
         for header_row in header_rows:
             formula_col = self._find_formula_column(worksheet, header_row)
             if formula_col:
-                formula_row = self._find_formula_row(worksheet, header_row, formula_col)
+                formula_row = self._find_formula_row(worksheet, header_row)
                 if formula_row:
                     tables_found += 1
                     rows_to_remove += (formula_row - header_row + 1)
@@ -639,8 +665,8 @@ class RowProcessor:
             logger.warning(f"No formula column found for header row {header_row}")
             return
         
-        # Find formula row (SUM formula)
-        formula_row = self._find_formula_row(worksheet, header_row, formula_col)
+        # Find formula row (SUM formula) - now looks for rows with 2+ SUM formulas
+        formula_row = self._find_formula_row(worksheet, header_row)
         if formula_row is None:
             logger.warning(f"No formula row found for header row {header_row}")
             return

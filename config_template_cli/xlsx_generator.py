@@ -97,6 +97,10 @@ class XLSXGenerator:
             # Restore empty merges (new system)
             restore_empty_merges_with_offset(workbook, empty_merges, offset_tracker, sheet_names)
             
+            # Step 3: Unhide all rows (preserve column visibility)
+            logger.info("Unhiding all rows while preserving column visibility...")
+            self._unhide_all_rows(workbook)
+            
             # Save the processed workbook
             workbook.save(output_file)
             logger.info(f"Generated XLSX file: {output_file}")
@@ -177,6 +181,30 @@ class XLSXGenerator:
         logger.info(f"  Total header rows found: {removal_stats['total_header_rows']}")
         logger.info(f"  Tables found: {removal_stats['tables_found']}")
         logger.info(f"  Rows removed: {removal_stats['rows_removed']}")
+    
+    def _unhide_all_rows(self, workbook: Workbook) -> None:
+        """
+        Unhide all rows in all worksheets while preserving column visibility.
+        
+        Args:
+            workbook: The workbook to process
+        """
+        logger.info("Unhiding all rows in all worksheets...")
+        
+        for sheet_name in workbook.sheetnames:
+            worksheet = workbook[sheet_name]
+            rows_unhidden = 0
+            
+            # Unhide all rows
+            for row_idx in range(1, worksheet.max_row + 1):
+                if worksheet.row_dimensions[row_idx].hidden:
+                    worksheet.row_dimensions[row_idx].hidden = False
+                    rows_unhidden += 1
+            
+            if rows_unhidden > 0:
+                logger.info(f"  Sheet '{sheet_name}': {rows_unhidden} rows unhidden")
+            else:
+                logger.info(f"  Sheet '{sheet_name}': no hidden rows found")
     
     def generate_comprehensive_report(self, 
                                     input_file: str,

@@ -1,3 +1,6 @@
+import json
+import os
+
 # --- START OF FULL FILE: config.py ---
 
 # --- File Configuration ---
@@ -139,5 +142,42 @@ DISTRIBUTION_BASIS_COLUMN = "pcs"
 # Example: If INPUT_EXCEL_FILE is "JF_Report_Q1.xlsx", it will match "JF".
 CUSTOM_AGGREGATION_WORKBOOK_PREFIXES = () # Renamed Variable
 
+# --- Dynamic Loading from JSON Config ---
+
+def load_and_update_mappings():
+    """
+    Loads header mappings from the JSON config file and updates the
+    TARGET_HEADERS_MAP dictionary. This makes the configuration dynamic.
+    """
+    try:
+        # Construct an absolute path to the JSON file relative to this script's location
+        # This ensures the file is found regardless of the current working directory
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        json_path = os.path.join(base_dir, '..', 'config_template_cli', 'mapping_config.json')
+        
+        if not os.path.exists(json_path):
+            print(f"Warning: Mapping config file not found at {json_path}. Using default TARGET_HEADERS_MAP.")
+            return
+
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            
+        mappings = data.get('shipping_list_header_map', {}).get('mappings', {})
+        
+        for header, canonical in mappings.items():
+            if canonical in TARGET_HEADERS_MAP:
+                if header not in TARGET_HEADERS_MAP[canonical]:
+                    TARGET_HEADERS_MAP[canonical].append(header)
+            else:
+                # If the canonical name (e.g., 'new_header_type') doesn't exist in the map, create it
+                TARGET_HEADERS_MAP[canonical] = [header]
+
+    except json.JSONDecodeError:
+        print("Warning: Could not decode mapping_config.json. Check for syntax errors. Using default TARGET_HEADERS_MAP.")
+    except Exception as e:
+        print(f"An unexpected error occurred while loading mapping_config.json: {e}")
+
+# Immediately call the function to update the map when this module is imported
+load_and_update_mappings()
 
 # --- END OF FULL FILE: config.py ---

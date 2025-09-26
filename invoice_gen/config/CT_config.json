@@ -11,10 +11,10 @@
   },
   "data_mapping": {
     "Invoice": {
-      "start_row": 20,
+      "start_row": 19,
       "add_blank_before_footer": false,
       "static_content_before_footer": {
-        "2": "LEATHER (HS.CODE: 4107.12.00)"
+        "2": "HS.CODE: 4107.12.00"
       },
       "header_to_write": [
         {
@@ -28,7 +28,7 @@
         {
           "row": 0,
           "col": 1,
-          "text": "FAIL HEADER",
+          "text": "P.O. Nº",
           "id": "col_po",
           "rowspan": 1,
           "colspan": 1
@@ -52,7 +52,7 @@
         {
           "row": 0,
           "col": 4,
-          "text": "Quantity",
+          "text": "Quantity(SF)",
           "id": "col_qty_sf",
           "rowspan": 1,
           "colspan": 1
@@ -81,20 +81,24 @@
         },
         "item": {
           "key_index": 1,
-          "id": "col_item"
+          "id": "col_item",
+          "number_format": "#,##0.00"
         },
         "description": {
           "key_index": 3,
           "id": "col_desc",
-          "fallback_on_none": "LEATHER"
+          "fallback_on_none": "COW LEATHER",
+          "fallback_on_DAF": "COW LEATHER"
         },
         "sqft": {
           "value_key": "sqft_sum",
-          "id": "col_qty_sf"
+          "id": "col_qty_sf",
+          "number_format": "#,##0.00"
         },
         "unit_price": {
           "key_index": 2,
-          "id": "col_unit_price"
+          "id": "col_unit_price",
+          "number_format": "#,##0.00"
         },
         "amount": {
           "id": "col_amount",
@@ -103,14 +107,15 @@
           "inputs": [
             "col_qty_sf",
             "col_unit_price"
-          ]
+          ],
+          "number_format": "#,##0.00"
         },
         "initial_static": {
           "type": "initial_static_rows",
           "column_header_id": "col_static",
           "values": [
             "VENDOR#:",
-            "Des: LEATHER",
+            "Des: COW LEATHER",
             "MADE IN CAMBODIA"
           ]
         }
@@ -129,10 +134,9 @@
         "value_col_id": "col_item"
       },
       "footer_configurations": {
-        "comment": "This is the TEMPLATE for the main total row and the Grand Total row.",
         "total_text": "TOTAL OF:",
         "total_text_column_id": 1,
-        "pallet_count_column_id": 3,
+        "pallet_count_column_id": 2,
         "sum_column_ids": [
           "col_qty_pcs",
           "col_qty_sf",
@@ -159,12 +163,24 @@
           },
           "col_amount": {
             "number_format": "#,##0.00"
+          },
+          "col_item": {
+            "number_format": "#,##0.00"
+          },
+          "col_unit_price": {
+            "number_format": "#,##0.00"
           }
         },
+        "merge_rules": [
+          {
+            "start_column_id": 1,
+            "colspan": 1
+          }
+        ],
         "style": {
           "font": {
             "name": "Times New Roman",
-            "size": 12.0,
+            "size": 10.0,
             "bold": true
           },
           "alignment": {
@@ -174,54 +190,16 @@
           "border": {
             "apply": true
           }
-        },
-        "merge_rules": [
-          {
-            "start_column_id": "col_po",
-            "colspan": 1
-          }
-        ]
+        }
       },
       "styling": {
-        "force_text_format_ids": [
-          "col_po",
-          "col_item"
-        ],
-        "column_ids_with_full_grid": [
-          "col_po",
-          "col_desc",
-          "col_item",
-          "col_qty_sf",
-          "col_unit_price",
-          "col_amount"
-        ],
-        "column_id_styles": {
-          "col_unit_price": {
-            "number_format": "#,##0.00"
-          },
-          "col_amount": {
-            "number_format": "#,##0.00"
-          },
-          "col_qty_sf": {
-            "number_format": "#,##0.00"
-          },
-          "col_desc": {
-            "alignment": {
-              "horizontal": "center"
-            }
-          }
-        },
-        "column_id_widths": {
-          "col_po": 28,
-          "col_desc": 20
-        },
         "default_font": {
           "name": "Times New Roman",
-          "size": 12.0
+          "size": 10.0
         },
         "header_font": {
           "name": "Times New Roman",
-          "size": 12.0,
+          "size": 10.0,
           "bold": true
         },
         "default_alignment": {
@@ -234,53 +212,129 @@
           "vertical": "center",
           "wrap_text": true
         },
-        "row_heights": {
-          "header": 35.0,
-          "data_default": 35.0,
-          "footer": 35.0
+        "force_text_format_ids": [
+          "col_po",
+          "col_item"
+        ],
+        "column_ids_with_full_grid": [
+          "remarks",
+          "col_pallet",
+          "col_po",
+          "col_desc",
+          "col_item",
+          "col_qty_sf",
+          "col_unit_price",
+          "col_amount"
+        ],
+        "column_id_styles": {
+          "col_unit_price": {
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_amount": {
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_qty_sf": {
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_desc": {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_item": {
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_static": {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_po": {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          }
         },
-        "number_formats": {
-          "col_item": "@",
-          "col_unit_price": "#,##0.00",
-          "col_amount": "#,##0.00",
-          "col_qty_sf": "#,##0.00"
+        "column_id_widths": {
+          "col_po": 28,
+          "col_desc": 20
+        },
+        "row_heights": {
+          "header": 30.0,
+          "data_default": 30.0,
+          "footer": 30.0
         }
       }
     },
     "Contract": {
-      "start_row": 11,
+      "start_row": 20,
       "header_to_write": [
         {
           "row": 0,
           "col": 0,
-          "text": "Description of Goods.",
+          "text": "P.O Nº",
           "id": "col_po",
-          "rowspan": 1,
-          "colspan": 6
-        },
-        {
-          "row": 0,
-          "col": 6,
-          "text": "Unit Price",
-          "id": "col_unit_price",
           "rowspan": 1,
           "colspan": 1
         },
         {
           "row": 0,
-          "col": 7,
-          "text": "Quantity(SF)",
+          "col": 1,
+          "text": "Name of Cormodity\nTên và miêu tả",
+          "id": "col_item",
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "text": "Description\nTả hàng hóa",
+          "id": "col_desc",
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "text": "Quantity(SF)\nSố lượng(SF)",
           "id": "col_qty_sf",
           "rowspan": 1,
           "colspan": 1
         },
         {
           "row": 0,
-          "col": 8,
-          "text": "Amount(USD)",
+          "col": 4,
+          "text": "Unit Price(USD)\nĐơn giá",
+          "id": "col_unit_price",
+          "rowspan": 1,
+          "colspan": 1
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "text": "Total value(USD)\nTrị giá",
           "id": "col_amount",
           "rowspan": 1,
-          "colspan": 2
+          "colspan": 1
         }
       ],
       "mappings": {
@@ -295,15 +349,18 @@
         "desc": {
           "key_index": 3,
           "id": "col_desc",
-          "fallback_on_none": "LEATHER"
+          "fallback_on_none": "COW LEATHER",
+          "fallback_on_DAF": "COW LEATHER"
         },
         "sqft": {
           "value_key": "sqft_sum",
-          "id": "col_qty_sf"
+          "id": "col_qty_sf",
+          "number_format": "#,##0.00"
         },
         "unit_price": {
           "key_index": 2,
-          "id": "col_unit_price"
+          "id": "col_unit_price",
+          "number_format": "#,##0.00"
         },
         "amount": {
           "id": "col_amount",
@@ -312,12 +369,12 @@
           "inputs": [
             "col_qty_sf",
             "col_unit_price"
-          ]
+          ],
+          "number_format": "#,##0.00"
         }
       },
       "footer_configurations": {
-        "comment": "This is the TEMPLATE for the main total row and the Grand Total row.",
-        "total_text": "TOTAL OF:",
+        "total_text": "TOTAL AMOUNT(Tổng trị giá):",
         "total_text_column_id": 0,
         "sum_column_ids": [
           "col_qty_pcs",
@@ -327,20 +384,6 @@
           "col_cbm",
           "col_amount"
         ],
-        "style": {
-          "font": {
-            "name": "Times New Roman",
-            "size": 8.0,
-            "bold": true
-          },
-          "alignment": {
-            "horizontal": "center",
-            "vertical": "center"
-          },
-          "border": {
-            "apply": true
-          }
-        },
         "number_formats": {
           "col_qty_pcs": {
             "number_format": "#,##0"
@@ -359,41 +402,40 @@
           },
           "col_amount": {
             "number_format": "#,##0.00"
+          },
+          "col_unit_price": {
+            "number_format": "#,##0.00"
           }
         },
         "merge_rules": [
           {
             "start_column_id": 0,
-            "colspan": 6
-          },
-          {
-            "start_column_id": 8,
             "colspan": 2
           }
-        ]
+        ],
+        "style": {
+          "font": {
+            "name": "Times New Roman",
+            "size": 10.0,
+            "bold": true
+          },
+          "alignment": {
+            "horizontal": "center",
+            "vertical": "center"
+          },
+          "border": {
+            "apply": true
+          }
+        }
       },
       "styling": {
-        "force_text_format_ids": [
-          "col_po",
-          "col_item",
-          "col_no"
-        ],
-        "column_ids_with_full_grid": [
-          "col_no",
-          "col_po",
-          "col_item",
-          "col_desc",
-          "col_qty_sf",
-          "col_unit_price",
-          "col_amount"
-        ],
         "default_font": {
           "name": "Times New Roman",
-          "size": 8.0
+          "size": 10.0
         },
         "header_font": {
           "name": "Times New Roman",
-          "size": 8.0,
+          "size": 10.0,
           "bold": true
         },
         "default_alignment": {
@@ -406,19 +448,60 @@
           "vertical": "center",
           "wrap_text": true
         },
+        "force_text_format_ids": [
+          "col_po",
+          "col_item",
+          "col_no"
+        ],
+        "column_ids_with_full_grid": [
+          "remarks",
+          "col_pallet",
+          "col_no",
+          "col_po",
+          "col_item",
+          "col_desc",
+          "col_qty_sf",
+          "col_unit_price",
+          "col_amount"
+        ],
         "column_id_styles": {
           "col_amount": {
-            "number_format": "#,##0.00"
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
           },
           "col_unit_price": {
-            "number_format": "#,##0.00"
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
           },
           "col_qty_sf": {
-            "number_format": "#,##0.00"
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
           },
           "col_desc": {
             "alignment": {
-              "horizontal": "left"
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_po": {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_item": {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
             }
           }
         },
@@ -430,14 +513,9 @@
           "col_amount": 47
         },
         "row_heights": {
-          "header": 13.1,
-          "data_default": 15.0,
-          "footer": 13.1
-        },
-        "number_formats": {
-          "col_unit_price": "#,##0.00",
-          "col_amount": "#,##0.00",
-          "col_qty_sf": "#,##0.00"
+          "header": 28.9,
+          "data_default": 26.3,
+          "footer": 28.9
         }
       },
       "data_cell_merging_rule": {
@@ -446,12 +524,6 @@
         },
         "col_specification": {
           "rowspan": 1
-        },
-        "col_po": {
-          "rowspan": 6
-        },
-        "col_amount": {
-          "rowspan": 2
         }
       }
     },
@@ -461,7 +533,7 @@
       "static_content_before_footer": {
         "2": "LEATHER (HS.CODE: 4107.12.00)"
       },
-      "summary": true,
+      "summary": false,
       "merge_rules_before_footer": {
         "2": 2
       },
@@ -551,7 +623,7 @@
           "column_header_id": "col_static",
           "values": [
             "VENDOR#:",
-            "Des: LEATHER",
+            "Des: COW LEATHER",
             "Case Qty:",
             "MADE IN CAMBODIA"
           ]
@@ -565,7 +637,8 @@
           },
           "description": {
             "id": "col_desc",
-            "fallback_on_none": "LEATHER"
+            "fallback_on_none": "COW LEATHER",
+            "fallback_on_DAF": "COW LEATHER"
           },
           "pcs": {
             "id": "col_qty_pcs"
@@ -588,10 +661,9 @@
         }
       },
       "footer_configurations": {
-        "comment": "This is the TEMPLATE for the main total row and the Grand Total row.",
         "total_text": "TOTAL OF:",
         "total_text_column_id": 1,
-        "pallet_count_column_id": 3,
+        "pallet_count_column_id": 2,
         "sum_column_ids": [
           "col_qty_pcs",
           "col_qty_sf",
@@ -613,12 +685,18 @@
             "number_format": "#,##0.00"
           },
           "col_cbm": {
-            "number_format": "0.00"
+            "number_format": "#,##0.00"
           },
           "col_amount": {
             "number_format": "#,##0.00"
           }
         },
+        "merge_rules": [
+          {
+            "start_column_id": 1,
+            "colspan": 1
+          }
+        ],
         "style": {
           "font": {
             "name": "Times New Roman",
@@ -632,23 +710,36 @@
           "border": {
             "apply": true
           }
-        },
-        "merge_rules": [
-          {
-            "start_column_id": "col_po",
-            "colspan": 1
-          }
-        ]
+        }
       },
       "styling": {
+        "default_font": {
+          "name": "Times New Roman",
+          "size": 12.0
+        },
+        "header_font": {
+          "name": "Times New Roman",
+          "size": 12.0,
+          "bold": true
+        },
+        "default_alignment": {
+          "horizontal": "center",
+          "vertical": "center",
+          "wrap_text": true
+        },
+        "header_alignment": {
+          "horizontal": "center",
+          "vertical": "center",
+          "wrap_text": true
+        },
         "force_text_format_ids": [
           "col_po",
           "col_item",
           "col_desc"
         ],
         "column_ids_with_full_grid": [
+          "remarks",
           "col_pallet",
-          "col_remarks",
           "col_po",
           "col_item",
           "col_desc",
@@ -658,25 +749,6 @@
           "col_gross",
           "col_cbm"
         ],
-        "default_font": {
-          "name": "Times New Roman",
-          "size": 12.0
-        },
-        "default_alignment": {
-          "horizontal": "center",
-          "vertical": "center",
-          "wrap_text": true
-        },
-        "header_font": {
-          "name": "Times New Roman",
-          "size": 12.0,
-          "bold": true
-        },
-        "header_alignment": {
-          "horizontal": "center",
-          "vertical": "center",
-          "wrap_text": true
-        },
         "column_id_styles": {
           "col_static": {
             "alignment": {
@@ -687,35 +759,58 @@
               "size": 12
             }
           },
-          "col_pallet": {
-            "alignment": {
-              "horizontal": "center"
-            }
-          },
-          "col_remarks": {
-            "alignment": {
-              "horizontal": "center"
-            }
-          },
           "col_desc": {
             "alignment": {
-              "horizontal": "center"
+              "horizontal": "center",
+              "vertical": "center"
             }
           },
           "col_net": {
-            "number_format": "#,##0.00"
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
           },
           "col_gross": {
-            "number_format": "#,##0.00"
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
           },
           "col_cbm": {
-            "number_format": "0.00"
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
           },
           "col_qty_pcs": {
-            "number_format": "#,##0"
+            "number_format": "#,##0",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
           },
           "col_qty_sf": {
-            "number_format": "#,##0.00"
+            "number_format": "#,##0.00",
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_po": {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
+          },
+          "col_item": {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center"
+            }
           }
         },
         "column_id_widths": {
@@ -734,15 +829,6 @@
           "data_default": 27.0,
           "footer": 27.0,
           "before_footer": 27.0
-        },
-        "number_formats": {
-          "col_item": "@",
-          "col_desc": "@",
-          "col_net": "#,##0.00",
-          "col_gross": "#,##0.00",
-          "col_cbm": "#,##0.00",
-          "col_qty_pcs": "#,##0",
-          "col_qty_sf": "#,##0.00"
         }
       },
       "data_cell_merging_rule": {
@@ -752,6 +838,20 @@
         "col_contents": {
           "rowspan": 1
         }
+      }
+    }
+  },
+  "metadata": {
+    "directory_info": {
+      "original_filename": "CT&INV&PL OJY25018 DAF.xlsx",
+      "original_stem": "CT&INV&PL OJY25018 DAF",
+      "enhanced_directory": "CT&INV&PL OJY25018 DAF_20250920_080804_aada1e",
+      "timestamp": "2025-09-20T08:08:04.631099",
+      "similar_names_detected": [],
+      "collision_prevention": {
+        "timestamp_added": "20250920_080804",
+        "hash_suffix": "aada1e",
+        "reason": "Enhanced naming to prevent directory collisions and confusion"
       }
     }
   }

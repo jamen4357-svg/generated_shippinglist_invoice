@@ -17,7 +17,7 @@ Current Sheet Mappings:
 'Contract' -> 'Contract'
 'INVOICE_NEW' -> 'Invoice'
 
-Current Header Mappings (77 total):
+Current Header Mappings (78 total):
 -------------------------
 '(CBM)' -> 'col_cbm'
 'AMOUNT(USD)' -> 'col_amount'
@@ -106,5 +106,6 @@ Trị giá' -> 'col_amount'
 'Unit price' -> 'col_unit_price'
 'Unit price
 (USD)' -> 'col_unit_price'
+'Unit price   (USD)' -> 'col_unit_price'
 'Unit price (USD)' -> 'col_unit_price'
 'Unite price   (USD)' -> 'col_unit_price'

@@ -40,8 +40,9 @@ def copy_sheet_between_workbooks(source_sheet: Worksheet, target_workbook: Workb
               target_sheet.column_dimensions[col_letter].hidden = True
     for row_idx, dim in source_sheet.row_dimensions.items():
         target_sheet.row_dimensions[row_idx].height = dim.height
-        if dim.hidden:
-            target_sheet.row_dimensions[row_idx].hidden = True
+        # Do NOT preserve hidden rows - let them be visible
+        # if dim.hidden:
+        #     target_sheet.row_dimensions[row_idx].hidden = True
     return target_sheet
 
 # Other helper functions (calculate_and_inject_totals, preprocess_data_for_numerics, derive_paths, load_json_file) remain unchanged.

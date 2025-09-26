@@ -181,9 +181,20 @@ class ConfigWriter:
         header_to_write = sheet_config["header_to_write"]
         if not isinstance(header_to_write, list):
             raise ConfigWriterError(f"header_to_write for sheet '{sheet_name}' must be a list")
-        
+
         if len(header_to_write) == 0:
-            raise ConfigWriterError(f"header_to_write for sheet '{sheet_name}' cannot be empty")
+            # Create default header entry instead of failing
+            header_to_write = [{
+                "text": "Default Header",
+                "row": 1,
+                "col": 1,
+                "rowspan": 1,
+                "colspan": 1,
+                "font_size": 11,
+                "bold": True,
+                "align": "center"
+            }]
+            sheet_config["header_to_write"] = header_to_write
         
         for i, header_entry in enumerate(header_to_write):
             self._validate_header_entry_completeness(sheet_name, i, header_entry)

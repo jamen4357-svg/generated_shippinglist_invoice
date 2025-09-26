@@ -75,9 +75,9 @@
       "PALLET\\nNO.": "col_pallet",
       "Name of\nCormodity": "col_item",
       "Unit Price\n(USD)": "col_unit_price",
-      "Amount(USD)asdfasdfasdfasdfasdfasdf": "col_amount",
       "NO": "col_no",
-      "Name of  \n Cormodity": "col_item",
+      "Name of Commodity": "col_item",
+      "Tên và miêu tả": "col_desc",
       "Quantity（SF）": "col_qty_sf",
       "Unit Price  (USD)": "col_unit_price",
       "Quantity               (SF)": "col_qty_sf",
@@ -89,7 +89,13 @@
       "Unit Price": "col_unit_price",
       "Quantity (SF)": "col_qty_sf",
       "FAIL HEADER": "col_po",
-      "Total value\n(USD)": "col_amount"
+      "Total value\n(USD)": "col_amount",
+      "Total value(USD)\nTrị giá": "col_amount",
+      "Unit Price(USD)\nĐơn giá": "col_unit_price",
+      "Description\nTả hàng hóa": "col_desc",
+      "Name of Cormodity\nTên và miêu tả": "col_item",
+      "Quantity(SF)\nSố lượng(SF)": "col_qty_sf",
+      "Unit price   (USD)": "col_unit_price"
     }
   },
   "fallback_strategies": {

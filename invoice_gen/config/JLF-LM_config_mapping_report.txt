@@ -17,19 +17,20 @@ Current Sheet Mappings:
 'Contract' -> 'Contract'
 'INVOICE_NEW' -> 'Invoice'
 
-Current Header Mappings (72 total):
+Current Header Mappings (77 total):
 -------------------------
 '(CBM)' -> 'col_cbm'
 'AMOUNT(USD)' -> 'col_amount'
 'Amount' -> 'col_amount'
 'Amount (USD)' -> 'col_amount'
 'Amount(USD)' -> 'col_amount'
-'Amount(USD)asdfasdfasdfasdfasdfasdf' -> 'col_amount'
 'CBM' -> 'col_cbm'
 'Cargo Descprition' -> 'col_po'
 'Cargo Description' -> 'col_po'
 'DESCRIPTION' -> 'col_desc'
 'Description' -> 'col_desc'
+'Description
+Tả hàng hóa' -> 'col_desc'
 'Description of Goods' -> 'col_po'
 'Description of Goods.' -> 'col_po'
 'FAIL HEADER' -> 'col_po'
@@ -54,8 +55,9 @@ SVAY RIENG' -> 'col_unit_price'
 'NW(KGS)' -> 'col_net'
 'Name of
 Cormodity' -> 'col_item'
-'Name of  
- Cormodity' -> 'col_item'
+'Name of Commodity' -> 'col_item'
+'Name of Cormodity
+Tên và miêu tả' -> 'col_item'
 'Name of\nCormodity' -> 'col_item'
 'Net Weight' -> 'col_net'
 'No.' -> 'col_no'
@@ -78,6 +80,8 @@ NO.' -> 'col_pallet'
 'Quantity               (SF)' -> 'col_qty_sf'
 'Quantity (SF)' -> 'col_qty_sf'
 'Quantity(SF)' -> 'col_qty_sf'
+'Quantity(SF)
+Số lượng(SF)' -> 'col_qty_sf'
 'Quantity（SF）' -> 'col_qty_sf'
 'REMARKS' -> 'col_remarks'
 'SF' -> 'col_qty_sf'
@@ -86,13 +90,18 @@ NO.' -> 'col_pallet'
 'Total value
 (USD)' -> 'col_amount'
 'Total value(USD)' -> 'col_amount'
+'Total value(USD)
+Trị giá' -> 'col_amount'
 'Total value\n(USD)' -> 'col_amount'
+'Tên và miêu tả' -> 'col_desc'
 'UNIT PRICE(USD)' -> 'col_unit_price'
 'Unit Price' -> 'col_unit_price'
 'Unit Price
 (USD)' -> 'col_unit_price'
 'Unit Price  (USD)' -> 'col_unit_price'
 'Unit Price(USD)' -> 'col_unit_price'
+'Unit Price(USD)
+Đơn giá' -> 'col_unit_price'
 'Unit Price\n(USD)' -> 'col_unit_price'
 'Unit price' -> 'col_unit_price'
 'Unit price

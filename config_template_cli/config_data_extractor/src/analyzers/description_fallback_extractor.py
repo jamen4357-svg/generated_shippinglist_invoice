@@ -79,11 +79,14 @@ class DescriptionFallbackExtractor:
 
         # Extract the fallback text from the description column at the fallback row
         fallback_text = self._extract_cell_text(worksheet, fallback_row, desc_col)
-        if not fallback_text or not fallback_text.strip():
-            return None
-
+        
+        # If no text found or text doesn't contain 'leather', use default "LEATHER"
+        if not fallback_text or not fallback_text.strip() or 'leather' not in fallback_text.lower():
+            original_text = "LEATHER"
+        else:
+            original_text = fallback_text.strip()
+        
         # Create both versions: original and DAF-filtered
-        original_text = fallback_text.strip()
         daf_text = self._filter_english_only(original_text)
 
         return FallbackInfo(
@@ -93,12 +96,25 @@ class DescriptionFallbackExtractor:
         )
 
     def _filter_english_only(self, text: str) -> str:
-        """Filter text to keep only English letters, numbers, and spaces (remove punctuation and non-ASCII)."""
-        # Keep only ASCII letters, numbers, and spaces
-        filtered = re.sub(r'[^a-zA-Z0-9\s]', '', text)
-        # Clean up extra spaces
-        filtered = ' '.join(filtered.split())
-        return filtered.strip()
+        """Filter text to keep only specific words: COW and LEATHER."""
+        # Define the allowed words
+        allowed_words = ['COW', 'LEATHER']
+        
+        # Convert text to uppercase for case-insensitive matching
+        text_upper = text.upper()
+        
+        # Find all occurrences of allowed words
+        found_words = []
+        for word in allowed_words:
+            if word in text_upper:
+                found_words.append(word)
+        
+        # If we found any allowed words, return them joined
+        if found_words:
+            return ' '.join(found_words)
+        
+        # If no allowed words found, return empty string (will fallback to original text)
+        return ""
 
     def _find_description_column(self, header_positions: List[HeaderMatch]) -> Optional[int]:
         """Find the column number for the description header."""

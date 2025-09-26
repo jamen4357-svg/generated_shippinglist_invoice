@@ -5,7 +5,10 @@ This module provides the HeaderDetector class that searches for specific header 
 and determines the start row for data insertion.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict
+import json
+import os
+from pathlib import Path
 from openpyxl.worksheet.worksheet import Worksheet
 from models.data_models import HeaderMatch
 
@@ -13,18 +16,77 @@ from models.data_models import HeaderMatch
 class HeaderDetector:
     """Detects header keywords and calculates start row positions."""
     
-    # Core header keywords to search for
-    HEADER_KEYWORDS = [
-        "P.O", "ITEM", "Description", "Quantity", "Amount"
-    ]
-    
-    def __init__(self, quantity_mode: bool = False):
+    def __init__(self, quantity_mode: bool = False, mapping_config: Optional[Dict] = None):
         """Initialize the HeaderDetector.
         
         Args:
             quantity_mode: If True, adds PCS and SQFT columns for packing list sheets
+            mapping_config: Optional mapping configuration dictionary
         """
         self.quantity_mode = quantity_mode
+        self.mapping_config = mapping_config
+        self.header_keywords = self._load_header_keywords()
+        # Load exact headers from mapping config if available
+        if self.mapping_config:
+            self.exact_headers = list(self.mapping_config.get('header_text_mappings', {}).get('mappings', {}).keys())
+        else:
+            self.exact_headers = []
+    
+    def _load_header_keywords(self) -> List[str]:
+        """Load header keywords from mapping config or use defaults."""
+        keywords = set()
+        
+        # Try to load from mapping config first
+        if self.mapping_config:
+            try:
+                header_mappings = self.mapping_config.get('header_text_mappings', {}).get('mappings', {})
+                for header in header_mappings.keys():
+                    # Extract base keywords from headers
+                    keywords.update(self._extract_keywords_from_header(header))
+            except Exception as e:
+                import logging
+                logging.warning(f"Could not load keywords from mapping config: {e}")
+                print(f"Warning: Could not load keywords from mapping config: {e}")
+        
+        # If no keywords loaded from config, use defaults
+        if not keywords:
+            keywords.update([
+                "P.O", "ITEM", "Description", "Quantity", "Amount",
+                "Mark", "Unit price", "Price", "Total", "Weight", "CBM", "Pallet",
+                "Remarks", "HS CODE", "Name", "Commodity", "Goods", "Product",
+                "PCS", "SF", "No.", "N.W", "G.W", "Net", "Gross", "FCA"
+            ])
+        
+        return list(keywords)
+    
+    def _extract_keywords_from_header(self, header: str) -> List[str]:
+        """Extract meaningful keywords from a header string."""
+        import re
+        
+        keywords = []
+        header_lower = header.lower()
+        
+        # Split by common separators and extract meaningful words
+        filtered_words = [word for word in words if word not in generic_words]
+        keywords.extend(filtered_words)
+        
+        # Add common combinations that might appear in headers
+        if 'unit' in header_lower and 'price' in header_lower:
+            keywords.append('unit price')
+        
+        # Add common combinations that might appear in headers
+        if 'unit' in header_lower and 'price' in header_lower:
+            keywords.append('unit price')
+        if 'gross' in header_lower and 'weight' in header_lower:
+            keywords.append('gross weight')
+        if 'net' in header_lower and 'weight' in header_lower:
+            keywords.append('net weight')
+        if 'p.o' in header_lower:
+            keywords.append('p.o')
+        if 'hs' in header_lower and 'code' in header_lower:
+            keywords.append('hs code')
+        
+        return keywords
     
     def find_headers(self, worksheet: Worksheet) -> List[HeaderMatch]:
         """
@@ -39,27 +101,25 @@ class HeaderDetector:
             List of HeaderMatch objects containing keyword, row, and column positions
         """
         header_matches = []
-        header_row_found = None
-        
+        header_matches = []
         # First pass: Find any header keyword to identify the header row
-        for row in worksheet.iter_rows():
+        max_rows_to_check = 30
+        header_row_found = None  # Initialize before use
+        for idx, row in enumerate(worksheet.iter_rows()):
+            if idx >= max_rows_to_check:
+                break
             for cell in row:
                 if cell.value is not None:
                     cell_value = str(cell.value).strip()
                     
                     # Check if cell contains any of our header keywords
-                    for keyword in self.HEADER_KEYWORDS:
+                    for keyword in self.header_keywords:
                         if self._matches_keyword(cell_value, keyword):
                             header_row_found = cell.row
-                            break
-                    
-                    if header_row_found:
-                        break
-            
             if header_row_found:
                 break
-        
-        # If we found a header row, determine if it's a single or double header
+            if header_row_found:
+                break
         if header_row_found:
             is_double_header = self._is_double_header(worksheet, header_row_found)
             

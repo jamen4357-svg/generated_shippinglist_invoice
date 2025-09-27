@@ -233,7 +233,10 @@
             "dog": "dog",
             "级别": "level",
             "TEST PO": "po",
-            "test sqft": "sqft"
+            "test sqft": "sqft",
+            "test level": "level",
+            "fail me": "unit",
+            "??": "amount"
         }
     },
     "fallback_strategies": {

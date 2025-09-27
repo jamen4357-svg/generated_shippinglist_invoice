@@ -249,7 +249,7 @@ with tab1:
                     st.error("Processing failed: The JSON data file was not created by the automation script.")
                     st.stop()
                 
-                required_columns = ['inv_no', 'inv_date', 'inv_ref', 'po', 'item', 'pcs', 'sqft', 'pallet_count', 'unit', 'amount', 'net', 'gross', 'cbm', 'production_order_no']
+                required_columns = ['po', 'item', 'pcs', 'sqft', 'pallet_count', 'unit', 'amount', 'net', 'gross', 'cbm', 'production_order_no']
                 st.session_state['hq_missing_fields'] = validate_json_data(json_path, required_columns)
                 st.session_state['hq_json_path'] = str(json_path)
                 st.session_state['hq_validation_done'] = True

@@ -236,7 +236,7 @@
             "test sqft": "sqft",
             "test level": "level",
             "fail me": "unit",
-            "??": "amount"
+            "": ""
         }
     },
     "fallback_strategies": {

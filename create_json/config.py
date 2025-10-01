@@ -53,11 +53,11 @@ TARGET_HEADERS_MAP = {
     "production_order_no": ["production order number", "生产单号", "po", "入库单号", "PO", "PO NO.", "订单号", "TTX编号"], # Primary English: 'production order number', Primary Chinese: '生产单号'
     "unit": ["unit price", "单价", "price", "unit", "USD", "usd", "单价USD", "价格", "单价 USD"],          # Primary English: 'unit price', Primary Chinese: '单价'
     # --- Core Logic Canonical Names ---
-    "po": ["PO NO.", "po", "PO", "Po", "订单号", "order number", "order no", "Po Nb", "尺数", "PO NB", "Po Nb", "客户订单号", "订单号"],                 # Primary English: 'po', Primary Chinese: '订单号'
-    "item": ["物料代码","item no", "ITEM NO.",  'item', "Item No", "ITEM NO", "Item No", "客户品名", "物料编码", "产品编号"],        # Primary English: 'item no', Primary Chinese: '物料代码'
-    "pcs": ["pcs", "总张数", "张数", "PCS"],                # Primary English: 'pcs', Primary Chinese: '总张数'
-    "net": ["NW", "net weight", "净重kg", "净重", "net", "净重KG"],          # Primary English: 'net weight', Primary Chinese: '净重'
-    "gross": ["GW", "gross weight", "毛重", "gross", "Gross", "gross weight", "Gross Weight", "毛重量KG", "重量KG", "重量", "毛重", "毛重KG"],       # Primary English: 'gross weight', Primary Chinese: '毛重'
+    "po": ["PO NO.", "po", "PO", "Po", "订单号", "order number", "order no", "Po Nb", "尺数", "PO NB", "Po Nb", "客户订单号", "订单号", "P.O Nº", "P.O NO", "PO Nº"],                 # Primary English: 'po', Primary Chinese: '订单号'
+    "item": ["物料代码","item no", "ITEM NO.",  'item', "Item No", "ITEM NO", "Item No", "客户品名", "物料编码", "产品编号", "ITEM Nº", "Item Nº"],        # Primary English: 'item no', Primary Chinese: '物料代码'
+    "pcs": ["pcs", "总张数", "张数", "PCS", "Quantity"],                # Primary English: 'pcs', Primary Chinese: '总张数'
+    "net": ["NW", "net weight", "净重kg", "净重", "net", "净重KG", "N.W (kgs)", "N.W", "Net Weight"],          # Primary English: 'net weight', Primary Chinese: '净重'
+    "gross": ["GW", "gross weight", "毛重", "gross", "Gross", "gross weight", "Gross Weight", "毛重量KG", "重量KG", "重量", "毛重", "毛重KG", "G.W(kgs)", "G.W", "Gross Weight"],       # Primary English: 'gross weight', Primary Chinese: '毛重'
     "sqft": ["sqft", "出货数量 (sf)", "尺数", "SF", "出货数量(sf)", "出货数量(SF)", "出货数量 SF", "尺码", "出货数量（SF）"],      # Primary English: 'sqft', Primary Chinese: '出货数量 (sf)' (Assuming this specific text)
     "amount": ["金额 USD","金额USD", "金额", "USD","amount", "总价", "usd", "Amount", "Total Amount", "total", "total amount"],            # Primary English: 'amount', Primary Chinese: '金额' # Ensure this is present and mapped
 

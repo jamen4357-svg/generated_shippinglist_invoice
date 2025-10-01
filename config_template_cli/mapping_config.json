@@ -174,9 +174,8 @@
             "入库日期": "date_recipt",
             "date receipt": "date_recipt",
             "Date Receipt": "date_recipt",
-            "cbm": "remarks",
+            "": "",
             "材积": "remarks",
-            "CBM": "remarks",
             "remarks": "remarks",
             "备注": "remarks",
             "Remark": "remarks",
@@ -235,8 +234,7 @@
             "TEST PO": "po",
             "test sqft": "sqft",
             "test level": "level",
-            "fail me": "unit",
-            "": ""
+            "cbm": "cbm"
         }
     },
     "fallback_strategies": {

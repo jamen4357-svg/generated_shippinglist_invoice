@@ -20,11 +20,14 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-# Database paths
-USER_DB_PATH = "data/user_database.db"
-ACTIVITY_LOG_PATH = "data/activity_log.db"
-INVOICE_DB_PATH = "data/Invoice Record/master_invoice_data.db"
-INVOICE_JSON_PATH = "data/invoice_database.json"
+# Get the directory where this script is located
+SCRIPT_DIR = Path(__file__).parent.absolute()
+
+# Database paths - use absolute paths
+USER_DB_PATH = SCRIPT_DIR / "data" / "user_database.db"
+ACTIVITY_LOG_PATH = SCRIPT_DIR / "data" / "activity_log.db"
+INVOICE_DB_PATH = SCRIPT_DIR / "data" / "Invoice Record" / "master_invoice_data.db"
+INVOICE_JSON_PATH = SCRIPT_DIR / "data" / "invoice_database.json"
 
 def clear_user_database():
     """Clear all user data but keep the database structure"""
@@ -172,9 +175,9 @@ def clear_invoice_database():
 def clear_data_directories():
     """Clear data from various directories"""
     directories_to_clear = [
-        "data/invoices_to_process",
-        "data/temp_uploads",
-        "data/failed_invoices"
+        str(SCRIPT_DIR / "data" / "invoices_to_process"),
+        str(SCRIPT_DIR / "data" / "temp_uploads"),
+        str(SCRIPT_DIR / "data" / "failed_invoices")
     ]
 
     success_count = 0
@@ -199,15 +202,15 @@ def clear_data_directories():
 
 def clear_security_log():
     """Clear the security.log file"""
-    security_log_path = "data/security.log"
-    if os.path.exists(security_log_path):
+    security_log_path = SCRIPT_DIR / "data" / "security.log"
+    if os.path.exists(str(security_log_path)):
         try:
             # Create backup
             backup_path = f"{security_log_path}.backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            shutil.copy2(security_log_path, backup_path)
+            shutil.copy2(str(security_log_path), str(backup_path))
 
             # Clear the log file
-            with open(security_log_path, 'w') as f:
+            with open(str(security_log_path), 'w') as f:
                 f.write("")
 
             print("✅ Cleared security log")

@@ -6,7 +6,7 @@ Secure admin password reset with custom password
 import sys
 import getpass
 sys.path.append('.')
-from login import hash_password
+from login import hash_password, USER_DB_PATH
 import sqlite3
 
 def secure_admin_reset():
@@ -33,7 +33,7 @@ def secure_admin_reset():
     hashed_password = hash_password(new_password)
     
     try:
-        conn = sqlite3.connect('data/user_database.db')
+        conn = sqlite3.connect(USER_DB_PATH)
         cursor = conn.cursor()
         
         # Reset password and clear failed attempts

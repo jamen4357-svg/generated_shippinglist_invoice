@@ -7,11 +7,16 @@ Use this if you get locked out of the admin account
 import sqlite3
 import os
 
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# Go up one level to get to the main app directory
+APP_DIR = os.path.dirname(SCRIPT_DIR)
+
 def unlock_admin_account():
     """Unlock the admin account by resetting failed attempts"""
     
-    # Database path
-    db_path = "data/user_database.db"
+    # Database path - use absolute path
+    db_path = os.path.join(APP_DIR, "data", "user_database.db")
     
     if not os.path.exists(db_path):
         print("❌ Database not found. Make sure the application has been run at least once.")
@@ -52,7 +57,7 @@ def unlock_admin_account():
 def show_account_status():
     """Show current account status"""
     
-    db_path = "data/user_database.db"
+    db_path = os.path.join(APP_DIR, "data", "user_database.db")
     
     if not os.path.exists(db_path):
         print("❌ Database not found.")

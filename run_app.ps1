@@ -16,6 +16,9 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "Target path: $NetworkPath" -ForegroundColor Gray
 Write-Host
 
+# Change to the target directory
+Set-Location $NetworkPath
+
 # Check if running from network path
 if ($NetworkPath.StartsWith("\\")) {
     Write-Host "🌐 Network path detected: $NetworkPath" -ForegroundColor Yellow

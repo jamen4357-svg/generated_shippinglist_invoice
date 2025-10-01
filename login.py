@@ -7,13 +7,17 @@ import json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-# Database paths
-USER_DB_PATH = "data/user_database.db"
-ACTIVITY_LOG_PATH = "data/activity_log.db"
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Database paths - use absolute paths based on script location
+USER_DB_PATH = os.path.join(SCRIPT_DIR, "data", "user_database.db")
+ACTIVITY_LOG_PATH = os.path.join(SCRIPT_DIR, "data", "activity_log.db")
 
 def init_user_database():
     """Initialize the user database with required tables"""
-    os.makedirs("data", exist_ok=True)
+    data_dir = os.path.join(SCRIPT_DIR, "data")
+    os.makedirs(data_dir, exist_ok=True)
     
     conn = sqlite3.connect(USER_DB_PATH)
     cursor = conn.cursor()

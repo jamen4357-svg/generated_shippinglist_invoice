@@ -15,6 +15,9 @@ if "%~d0"=="\\" (
     exit /b 1
 )
 
+REM Change to the script's directory to ensure correct working directory
+cd /d "%~dp0"
+
 echo Activating virtual environment...
 if not exist "venv\Scripts\activate.bat" (
     echo ❌ Virtual environment not found at: %CD%\venv

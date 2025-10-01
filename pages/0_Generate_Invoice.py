@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 import time
 import re
 from auth_wrapper import setup_page_auth
+from ui_utils.field_prefiller import render_field_prefiller
 
 # Import our strategy system
 from invoice_strategies import (
@@ -110,6 +111,8 @@ if 'excel_validation_warnings' not in st.session_state:
     st.session_state.excel_validation_warnings = []
 if 'temp_file_path' not in st.session_state:
     st.session_state.temp_file_path = None
+if 'uploaded_filename' not in st.session_state:
+    st.session_state.uploaded_filename = None
 
 def reset_workflow():
     """Reset the workflow to initial state"""
@@ -124,6 +127,7 @@ def reset_workflow():
     st.session_state.selected_strategy = None
     st.session_state.uploaded_file = None
     st.session_state.temp_file_path = None
+    st.session_state.uploaded_filename = None
     st.session_state.validation_complete = False
     st.session_state.excel_validation_passed = False
     st.session_state.excel_validation_warnings = []
@@ -255,6 +259,7 @@ elif st.session_state.workflow_step == 'upload':
                     f.write(uploaded_file.getbuffer())
 
                 st.session_state.temp_file_path = temp_file_path
+                st.session_state.uploaded_filename = uploaded_file.name # Store the filename
                 st.session_state.workflow_step = 'validate_excel'
                 st.rerun()
 
@@ -287,6 +292,10 @@ elif st.session_state.workflow_step == 'validate_excel':
 
     st.session_state.excel_validation_passed = is_valid
     st.session_state.excel_validation_warnings = warnings
+
+    # Display file name
+    if st.session_state.uploaded_file:
+        st.info(f"📄 **File:** {st.session_state.uploaded_file.name}")
 
     # Display validation results
     if is_valid:
@@ -351,12 +360,15 @@ elif st.session_state.workflow_step == 'collect_inputs':
 
         with col1:
             # Invoice Reference
-            default_inv_ref = get_suggested_inv_ref()
-            inputs['inv_ref'] = st.text_input(
-                "Invoice Reference",
-                value=default_inv_ref,
-                key="input_inv_ref"
+            suggested_inv_ref = get_suggested_inv_ref()
+            render_field_prefiller(
+                field_label="Invoice Reference",
+                session_key="input_inv_ref",
+                suggested_value=st.session_state.get('uploaded_filename', suggested_inv_ref),
+                help_text="Click 'Use Filename' to use the uploaded file's name as the Invoice Reference."
             )
+            inputs['inv_ref'] = st.session_state.get("input_inv_ref", "")
+
 
             # Unit Price
             inputs['unit_price'] = st.number_input(
@@ -509,7 +521,35 @@ elif st.session_state.workflow_step == 'overrides':
     overrides = {}
 
     for key, config in ui_config.items():
-        if config['type'] == 'text_input':
+        # --- START: feature_field_prefiller ---
+        if config.get('prefill_from_filename', False):
+            suggested_value = st.session_state.get('uploaded_filename', '')
+            # Clean up the filename to be more suitable for an invoice number
+            if suggested_value:
+                suggested_value = Path(suggested_value).stem # Remove extension
+            
+            render_field_prefiller(
+                field_label=config['label'],
+                session_key=f"override_{key}",
+                suggested_value=suggested_value,
+                help_text="Click 'Use Filename' to use the uploaded file's name."
+            )
+            overrides[key] = st.session_state.get(f"override_{key}", "")
+        elif key == 'inv_no':  # Special handling for invoice number with filename suggestion
+            suggested_filename = st.session_state.get('uploaded_filename', '')
+            # Clean up the filename to be more suitable for an invoice number
+            if suggested_filename:
+                suggested_filename = Path(suggested_filename).stem  # Remove extension
+            
+            render_field_prefiller(
+                field_label=config['label'],
+                session_key=f"override_{key}",
+                suggested_value=suggested_filename,
+                help_text="Click 'Use Filename' to use the uploaded file's name as the invoice number."
+            )
+            overrides[key] = st.session_state.get(f"override_{key}", "")
+        # --- END: feature_field_prefiller ---
+        elif config['type'] == 'text_input':
             default_val = config.get('default', '')
             if default_val == 'auto':
                 default_val = get_suggested_inv_ref()

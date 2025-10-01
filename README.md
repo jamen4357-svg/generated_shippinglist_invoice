@@ -108,6 +108,51 @@ This project comes with a pre-configured virtual environment containing all nece
 └── README.md             # This file
 ```
 
+## 🧪 Testing
+
+The application includes a comprehensive test suite to validate the Strategy pattern implementation and ensure code quality.
+
+### Running Tests
+
+**Option 1: Using the test runner script (Recommended)**
+```bash
+python run_tests.py
+```
+
+**Option 2: Using unittest directly**
+```bash
+# Run all tests
+python -m unittest discover tests -v
+
+# Run specific test modules
+python -m unittest tests.strategies -v
+python -m unittest tests.pages -v
+
+# Run individual test files
+python -m unittest tests.strategies.test_invoice_strategies -v
+python -m unittest tests.pages.test_0_Generate_Invoice -v
+```
+
+### Test Structure
+
+```
+tests/
+├── __init__.py                    # Test package
+├── pages/                         # UI workflow tests
+│   ├── __init__.py
+│   └── test_0_Generate_Invoice.py # Page interaction tests
+└── strategies/                    # Business logic tests
+    ├── __init__.py
+    └── test_invoice_strategies.py # Strategy pattern tests
+```
+
+### Test Coverage
+
+- **Strategy Pattern Validation**: Tests for `InvoiceGenerationStrategy` base class and concrete implementations
+- **UI Workflow Testing**: Tests for Streamlit page interactions and state transitions
+- **Data Processing**: Tests for JSON aggregation and Excel processing logic
+- **Mocking**: Proper mocking of Streamlit components for isolated testing
+
 ## 🔧 Troubleshooting
 
 ### Virtual Environment Issues

@@ -71,6 +71,44 @@ class InvoiceGenerationStrategy(ABC):
         """Generate final documents and return list of generated files"""
         pass
 
+    def _run_subprocess(self, command: List[str], cwd: Path, identifier_for_error: str) -> None:
+        """A shared helper to run a subprocess and handle common errors."""
+        sub_env = os.environ.copy()
+        sub_env['PYTHONIOENCODING'] = 'utf-8'
+
+        try:
+            result = subprocess.run(
+                command,
+                check=True,
+                capture_output=True,
+                text=True,
+                cwd=cwd,
+                encoding='utf-8',
+                errors='replace',
+                env=sub_env
+            )
+            # Optional: Log success if needed
+            # st.info(f"Subprocess executed successfully: {result.stdout}")
+
+        except subprocess.CalledProcessError as e:
+            error_msg = (e.stdout + e.stderr).lower()
+            if any(keyword in error_msg for keyword in ['config', 'template', 'not found', 'missing', 'no such file']):
+                self._show_config_error(identifier_for_error)
+            else:
+                st.error(f"A process failed to execute. Error: {e.stderr or e.stdout}")
+            raise # Re-raise the exception to halt execution
+
+    def _show_config_error(self, po_number: str):
+        """Displays a consistent, formatted error message when a PO config is missing."""
+        st.error(f"**Configuration Error:** No company configuration found for PO **{po_number}**.")
+        st.warning(
+            "Please ensure a company is assigned to this PO in the **Company Setup** page "
+            "before generating documents."
+        )
+        # Append po_number to the key to ensure uniqueness when called multiple times
+        if st.button("🏢 Go to Company Setup", key=f"setup_{self.name.replace(' ', '_')}_{po_number}", use_container_width=True):
+            st.switch_page("pages/3_SHIPPING_HEADER.py")
+
 
 class HighQualityLeatherStrategy(InvoiceGenerationStrategy):
     """Strategy for High-Quality Leather invoice generation"""
@@ -203,19 +241,12 @@ class HighQualityLeatherStrategy(InvoiceGenerationStrategy):
                 "--input-excel", str(excel_path),
                 "--output-dir", str(json_output_dir)
             ]
-
             try:
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                    cwd=SCRIPT_DIR / "create_json"  # Run from create_json directory so relative imports work
-                )
+                self._run_subprocess(cmd, cwd=SCRIPT_DIR / "create_json", identifier_for_error=identifier)
                 st.success("Excel processing completed successfully!")
-            except subprocess.CalledProcessError as e:
-                st.error(f"Processing failed: {e.stderr}")
-                raise RuntimeError(f"Excel processing failed: {e.stderr}")
+            except subprocess.CalledProcessError:
+                # The error is already displayed by _run_subprocess, just raise a runtime error to stop
+                raise RuntimeError(f"Excel processing failed for {identifier}")
 
         if not json_path.exists():
             raise FileNotFoundError(f"Processing failed: JSON file was not created by automation script")
@@ -327,27 +358,12 @@ class HighQualityLeatherStrategy(InvoiceGenerationStrategy):
                 "--configdir", str(CONFIG_DIR)
             ] + flags
 
-            sub_env = os.environ.copy()
-            sub_env['PYTHONIOENCODING'] = 'utf-8'
+            self._run_subprocess(command, cwd=INVOICE_GEN_DIR, identifier_for_error=identifier)
 
-            try:
-                result = subprocess.run(
-                    command, check=True, capture_output=True, text=True,
-                    cwd=INVOICE_GEN_DIR, encoding='utf-8', errors='replace', env=sub_env
-                )
+            import time
+            time.sleep(0.5)  # Allow file to be fully written
 
-                import time
-                time.sleep(0.5)  # Allow file to be fully written
-
-                generated_files.append(output_path)
-
-            except subprocess.CalledProcessError as e:
-                error_msg = e.stderr.lower() if e.stderr else ""
-                if any(keyword in error_msg for keyword in ['config', 'template', 'not found', 'missing', 'no such file']):
-                    self._show_config_error(identifier)
-                else:
-                    st.error(f"Failed to generate '{mode_name}' version. Error: {e.stderr}")
-                raise
+            generated_files.append(output_path)
 
         return generated_files
 
@@ -379,17 +395,6 @@ class HighQualityLeatherStrategy(InvoiceGenerationStrategy):
         except Exception:
             pass
         return None
-
-    def _show_config_error(self, po_number: str):
-        """Displays a consistent, formatted error message when a PO config is missing."""
-        st.error(f"**Configuration Error:** No company configuration found for PO **{po_number}**.")
-        st.warning(
-            "Please ensure a company is assigned to this PO in the **Company Setup** page "
-            "before generating documents."
-        )
-        # Append po_number to the key to ensure uniqueness when called multiple times
-        if st.button("🏢 Go to Company Setup", key=f"setup_{self.name.replace(' ', '_')}_{po_number}", use_container_width=True):
-            st.switch_page("pages/3_SHIPPING_HEADER.py")
 
     def _get_company_config_for_po(self, po_number: str) -> Optional[Dict[str, Any]]:
         """Retrieve company configuration based on PO number"""
@@ -587,31 +592,18 @@ class SecondLayerLeatherStrategy(InvoiceGenerationStrategy):
                 "-o", str(json_path)
             ]
 
-            sub_env = os.environ.copy()
-            sub_env['PYTHONIOENCODING'] = 'utf-8'
-
             try:
-                result = subprocess.run(cmd, capture_output=True, text=True,
-                             cwd=str(CREATE_JSON_DIR), encoding='utf-8', env=sub_env)
-                
+                self._run_subprocess(cmd, cwd=CREATE_JSON_DIR, identifier_for_error=po_number)
                 # Check if the script actually succeeded (JSON file was created)
                 if json_path.exists() and json_path.stat().st_size > 0:
                     st.success(f"Excel processing complete: '{json_path.name}' created.")
                 else:
-                    # Even if exit code is non-zero, check if JSON was created
-                    if result.returncode != 0:
-                        st.warning(f"Script exited with code {result.returncode}, but checking if JSON was created...")
-                        if json_path.exists():
-                            st.success(f"Excel processing complete: '{json_path.name}' created (despite exit code).")
-                        else:
-                            st.error("Excel processing FAILED - no JSON file created.")
-                            st.text_area("Full Error Log:", result.stdout + result.stderr, height=200)
-                            raise subprocess.CalledProcessError(result.returncode, cmd, result.stdout, result.stderr)
+                    st.error("Excel processing FAILED - no JSON file created.")
+                    raise RuntimeError("Excel processing failed to create a JSON file.")
 
-            except subprocess.CalledProcessError as e:
-                st.error("Excel processing FAILED.")
-                st.text_area("Full Error Log:", e.stdout + e.stderr, height=200)
-                raise
+            except subprocess.CalledProcessError:
+                # Error is handled by the helper, just raise to stop execution
+                raise RuntimeError("Excel processing failed.")
 
         return json_path, po_number
 
@@ -654,52 +646,17 @@ class SecondLayerLeatherStrategy(InvoiceGenerationStrategy):
                 "--configdir", str(CONFIG_DIR)
             ]
 
-            sub_env = os.environ.copy()
-            sub_env['PYTHONIOENCODING'] = 'utf-8'
+            self._run_subprocess(cmd, cwd=INVOICE_GEN_DIR, identifier_for_error=po_number)
 
-            try:
-                subprocess.run(cmd, check=True, capture_output=True, text=True,
-                             cwd=str(INVOICE_GEN_DIR), encoding='utf-8', env=sub_env)
+            import time
+            time.sleep(1.0)  # Allow files to be fully written
 
-                import time
-                time.sleep(1.0)  # Allow files to be fully written
+            st.success("Documents generated successfully.")
 
-                st.success("Documents generated successfully.")
-
-                # Find generated files
-                generated_files = list(output_dir.glob(f"* {po_number}.xlsx"))
-
-            except subprocess.CalledProcessError as e:
-                error_msg = (e.stdout + e.stderr).lower() if (e.stdout or e.stderr) else ""
-
-                if any(keyword in error_msg for keyword in ['config', 'template', 'not found', 'missing', 'no such file']):
-                    self._show_config_error(po_number)
-                else:
-                    st.error("Document generation FAILED.")
-                    st.text_area("Full Error Log:", e.stdout + e.stderr, height=300)
-                raise
+            # Find generated files
+            generated_files = list(output_dir.glob(f"* {po_number}.xlsx"))
 
         return generated_files
-
-    def _show_config_error(self, po_number: str):
-        """Displays a consistent, formatted error message when a PO config is missing."""
-        st.error(f"**Configuration Error:** No company configuration found for PO **{po_number}**.")
-        st.warning(
-            "Please ensure a company is assigned to this PO in the **Company Setup** page "
-            "before generating documents."
-        )
-        # Append po_number to the key to ensure uniqueness when called multiple times
-        if st.button("🏢 Go to Company Setup", key=f"setup_{self.name.replace(' ', '_')}_{po_number}", use_container_width=True):
-            st.switch_page("pages/3_SHIPPING_HEADER.py")
-
-    def get_override_ui_config(self) -> Dict[str, Any]:
-        """Return UI config for 2nd layer overrides - SIMPLIFIED"""
-        return {
-            "inv_ref": {"type": "text_input", "label": "Invoice Reference", "default": "auto"},
-            "inv_date": {"type": "date_input", "label": "Invoice Date", "default": "today"},
-            "unit_price": {"type": "number_input", "label": "Unit Price", "default": 0.61, "min": 0.0, "step": 0.01}
-        }
-
 
     def apply_overrides(self, json_path: Path, overrides: Dict[str, Any]) -> bool:
         """Apply overrides to 2nd layer leather JSON using TARGET_HEADERS_MAP"""
@@ -805,53 +762,25 @@ class SecondLayerLeatherStrategy(InvoiceGenerationStrategy):
                 elif option == "combine":
                     cmd.append("--combine")
 
-            sub_env = os.environ.copy()
-            sub_env['PYTHONIOENCODING'] = 'utf-8'
+            self._run_subprocess(cmd, cwd=INVOICE_GEN_DIR, identifier_for_error=po_number)
 
-            try:
-                result = subprocess.run(cmd, capture_output=True, text=True,
-                             cwd=str(INVOICE_GEN_DIR), encoding='utf-8', env=sub_env)
+            import time
+            time.sleep(1.0)  # Allow files to be fully written
 
-                # Check if the command succeeded
-                if result.returncode == 0:
-                    import time
-                    time.sleep(1.0)  # Allow files to be fully written
+            st.success("Documents generated successfully!")
 
-                    st.success("Documents generated successfully!")
+            # Find generated files
+            generated_files = list(output_dir.glob(f"* {po_number}.xlsx"))
 
-                    # Find generated files
-                    generated_files = list(output_dir.glob(f"* {po_number}.xlsx"))
-
-                    if not generated_files:
-                        st.warning(f"No files found matching pattern '* {po_number}.xlsx' in {output_dir}")
-                        # Try broader search
-                        all_files = list(output_dir.glob("*.xlsx"))
-                        if all_files:
-                            st.info(f"Found {len(all_files)} XLSX files: {[f.name for f in all_files]}")
-                            generated_files = all_files
-                        else:
-                            st.error("No XLSX files found in output directory")
+            if not generated_files:
+                st.warning(f"No files found matching pattern '* {po_number}.xlsx' in {output_dir}")
+                # Try broader search
+                all_files = list(output_dir.glob("*.xlsx"))
+                if all_files:
+                    st.info(f"Found {len(all_files)} XLSX files: {[f.name for f in all_files]}")
+                    generated_files = all_files
                 else:
-                    # Command failed - show detailed error
-                    error_msg = (result.stdout + result.stderr).lower() if (result.stdout or result.stderr) else ""
-
-                    if any(keyword in error_msg for keyword in ['config', 'template', 'not found', 'missing', 'no such file']):
-                        self._show_config_error(po_number)
-                    else:
-                        st.error("Document generation failed.")
-                        st.text_area("Full Error Log:", result.stdout + result.stderr, height=300)
-                    raise subprocess.CalledProcessError(result.returncode, cmd, result.stdout, result.stderr)
-
-            except subprocess.CalledProcessError as e:
-                error_msg = (e.stdout + e.stderr).lower() if (e.stdout or e.stderr) else ""
-
-                if any(keyword in error_msg for keyword in ['config', 'template', 'not found', 'missing', 'no such file']):
-                    self._show_config_error(po_number)
-                else:
-                    st.error("Document generation failed.")
-                    st.text_area("Full Error Log:", e.stdout + e.stderr, height=300)
-                raise
-
+                    st.error("No XLSX files found in output directory")
         return generated_files
 
     def _get_po_from_json(self, json_path: Path) -> Optional[str]:

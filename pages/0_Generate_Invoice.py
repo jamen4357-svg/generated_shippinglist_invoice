@@ -206,35 +206,9 @@ def check_existing_identifiers(inv_no: str = None, inv_ref: str = None) -> dict:
         st.warning(f"DB error checking for existing values: {e}")
     return results
 
-# --- Main Workflow ---
-st.header("Invoice Generation Workflow")
-
-# Step 1: Strategy Selection
-if st.session_state.workflow_step == 'select_strategy':
-    st.subheader("1. Select Invoice Type")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        if st.button("🏭 High-Quality Leather", use_container_width=True, type="primary"):
-            st.session_state.selected_strategy = STRATEGIES['high_quality']
-            st.session_state.workflow_step = 'upload'
-            st.rerun()
-
-    with col2:
-        if st.button("📦 2nd Layer Leather", use_container_width=True, type="primary"):
-            st.session_state.selected_strategy = STRATEGIES['second_layer']
-            st.session_state.workflow_step = 'upload'
-            st.rerun()
-
-    st.markdown("---")
-    if st.button("🔄 Reset Workflow", use_container_width=True):
-        reset_workflow()
-
-# Step 2: File Upload
-elif st.session_state.workflow_step == 'upload':
-    strategy = st.session_state.selected_strategy
-
+# --- Helper Functions for Rendering Steps ---
+def render_upload_step(strategy):
+    """Renders the file upload UI and handles the logic for that step."""
     st.subheader(f"2. Upload File for {strategy.name}")
     st.info(strategy.description)
 
@@ -280,9 +254,9 @@ elif st.session_state.workflow_step == 'upload':
         if st.button("🔄 Reset Workflow", use_container_width=True):
             reset_workflow()
 
-# Step 3: Excel Validation
-elif st.session_state.workflow_step == 'validate_excel':
-    strategy = st.session_state.selected_strategy
+
+def render_validate_excel_step(strategy):
+    """Renders the Excel validation UI and handles the logic for that step."""
     temp_file_path = st.session_state.temp_file_path
 
     st.subheader(f"3. Validate Excel Data for {strategy.name}")
@@ -343,10 +317,9 @@ elif st.session_state.workflow_step == 'validate_excel':
                 st.session_state.workflow_step = 'process_file'
             st.rerun()
 
-# Step 4: Input Collection (for 2nd Layer Leather)
-elif st.session_state.workflow_step == 'collect_inputs':
-    strategy = st.session_state.selected_strategy
 
+def render_collect_inputs_step(strategy):
+    """Renders the UI for collecting required inputs for certain strategies."""
     st.subheader(f"4. Enter Invoice Details for {strategy.name}")
 
     # Only show for 2nd Layer Leather
@@ -415,9 +388,9 @@ elif st.session_state.workflow_step == 'collect_inputs':
             st.session_state.workflow_step = 'validate_excel'
             st.rerun()
 
-# Step 5: File Processing
-elif st.session_state.workflow_step == 'process_file':
-    strategy = st.session_state.selected_strategy
+
+def render_process_file_step(strategy):
+    """Handles the backend processing of the file (Excel to JSON)."""
     temp_file_path = st.session_state.temp_file_path
 
     st.subheader(f"5. Process File for {strategy.name}")
@@ -499,20 +472,23 @@ elif st.session_state.workflow_step == 'process_file':
             st.rerun()
 
         except Exception as e:
-            st.error(f"❌ Processing failed: {e}")
+            st.error(f"❌ File processing failed: {e}")
             st.exception(e)
+            # Ensure temp file is cleaned up on failure
+            if st.session_state.get('temp_file_path') and st.session_state.temp_file_path.exists():
+                try:
+                    st.session_state.temp_file_path.unlink()
+                except:
+                    pass
+            st.session_state.temp_file_path = None
+            # Offer a way to go back
+            if st.button("⬅️ Back to Upload"):
+                st.session_state.workflow_step = 'upload'
+                st.rerun()
 
-    # Navigation
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("⬅️ Back to Validation", use_container_width=True):
-            st.session_state.workflow_step = 'validate_excel'
-            st.rerun()
 
-# Step 6: Manual Overrides
-elif st.session_state.workflow_step == 'overrides':
-    strategy = st.session_state.selected_strategy
-
+def render_overrides_step(strategy):
+    """Renders the UI for manual overrides and generation options."""
     st.subheader(f"6. Manual Overrides for {strategy.name}")
 
     ui_config = strategy.get_override_ui_config()
@@ -643,10 +619,9 @@ elif st.session_state.workflow_step == 'overrides':
         if st.button("🔄 Reset Workflow", use_container_width=True):
             reset_workflow()
 
-# Step 4: Generation Options
-elif st.session_state.workflow_step == 'generate':
-    strategy = st.session_state.selected_strategy
 
+def render_generate_step(strategy):
+    """Renders the final generation options and download button."""
     st.subheader(f"7. Generation Options for {strategy.name}")
 
     generation_options = strategy.get_generation_options()
@@ -708,25 +683,83 @@ elif st.session_state.workflow_step == 'generate':
 
                     st.subheader("5. Download Generated Files")
                     st.download_button(
-                        label=f"📥 Download All Files ({len(files_to_zip)} files)",
-                        data=zip_buffer.getvalue(),
-                        file_name=f"Invoices-{st.session_state.identifier}.zip",
+                        label="📥 Download All as ZIP",
+                        data=zip_buffer,
+                        file_name=f"{st.session_state.identifier}_invoice_pack.zip",
                         mime="application/zip",
                         use_container_width=True
                     )
 
-                    st.success("🎉 Invoice generation complete!")
+                    # Final navigation
+                    st.button("🎉 Start New Workflow", on_click=reset_workflow, use_container_width=True)
 
                 else:
-                    st.error("❌ No files were generated. Check the errors above.")
+                    st.error("❌ Document generation failed. No files were created.")
+                    if st.button("⬅️ Back to Overrides"):
+                        st.session_state.workflow_step = 'overrides'
+                        st.rerun()
 
             except Exception as e:
-                st.error(f"❌ Generation failed: {e}")
+                st.error(f"An unexpected error occurred during generation: {e}")
                 st.exception(e)
+                if st.button("⬅️ Back to Overrides"):
+                    st.session_state.workflow_step = 'overrides'
+                    st.rerun()
 
-    with col3:
-        if st.button("🔄 Reset Workflow", use_container_width=True):
-            reset_workflow()
+# --- Main Workflow ---
+st.header("Invoice Generation Workflow")
+
+# Step 1: Strategy Selection
+if st.session_state.workflow_step == 'select_strategy':
+    st.subheader("1. Select Invoice Type")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("🏭 High-Quality Leather", use_container_width=True, type="primary"):
+            st.session_state.selected_strategy = STRATEGIES['high_quality']
+            st.session_state.workflow_step = 'upload'
+            st.rerun()
+
+    with col2:
+        if st.button("📦 2nd Layer Leather", use_container_width=True, type="primary"):
+            st.session_state.selected_strategy = STRATEGIES['second_layer']
+            st.session_state.workflow_step = 'upload'
+            st.rerun()
+
+    st.markdown("---")
+    if st.button("🔄 Reset Workflow", use_container_width=True):
+        reset_workflow()
+
+# Step 2: File Upload
+elif st.session_state.workflow_step == 'upload':
+    strategy = st.session_state.selected_strategy
+    render_upload_step(strategy)
+
+# Step 3: Excel Validation
+elif st.session_state.workflow_step == 'validate_excel':
+    strategy = st.session_state.selected_strategy
+    render_validate_excel_step(strategy)
+
+# Step 4: Input Collection (for 2nd Layer Leather)
+elif st.session_state.workflow_step == 'collect_inputs':
+    strategy = st.session_state.selected_strategy
+    render_collect_inputs_step(strategy)
+
+# Step 5: File Processing
+elif st.session_state.workflow_step == 'process_file':
+    strategy = st.session_state.selected_strategy
+    render_process_file_step(strategy)
+
+# Step 6: Manual Overrides
+elif st.session_state.workflow_step == 'overrides':
+    strategy = st.session_state.selected_strategy
+    render_overrides_step(strategy)
+
+# Step 7: Generation
+elif st.session_state.workflow_step == 'generate':
+    strategy = st.session_state.selected_strategy
+    render_generate_step(strategy)
 
 # --- Footer ---
 st.markdown("---")

@@ -391,7 +391,21 @@ def render_collect_inputs_step(strategy):
 
 def render_process_file_step(strategy):
     """Handles the backend processing of the file (Excel to JSON)."""
-    temp_file_path = st.session_state.temp_file_path
+    # CRITICAL: This function's logic should only run when the app is in this specific step.
+    # This guard prevents it from re-executing with stale state during a Streamlit rerun.
+    if st.session_state.workflow_step != 'process_file':
+        return
+
+    temp_file_path = st.session_state.get('temp_file_path')
+
+    # Guard clause: If the path is missing (e.g., due to a page reload or improper state),
+    # guide the user back to the upload step.
+    if not temp_file_path:
+        st.warning("File path is missing. Please go back and re-upload the file.")
+        if st.button("⬅️ Back to Upload"):
+            st.session_state.workflow_step = 'upload'
+            st.rerun()
+        return
 
     st.subheader(f"5. Process File for {strategy.name}")
 
@@ -460,27 +474,13 @@ def render_process_file_step(strategy):
             st.session_state.validation_complete = True
             st.session_state.workflow_step = 'overrides'
             
-            # Cleanup temp file after successful processing
-            if st.session_state.temp_file_path and st.session_state.temp_file_path.exists():
-                try:
-                    st.session_state.temp_file_path.unlink()
-                except:
-                    pass
-            st.session_state.temp_file_path = None
-            
             st.success("✅ File processed and validated successfully!")
+            # Rerun after success to move to the next step
             st.rerun()
 
         except Exception as e:
             st.error(f"❌ File processing failed: {e}")
             st.exception(e)
-            # Ensure temp file is cleaned up on failure
-            if st.session_state.get('temp_file_path') and st.session_state.temp_file_path.exists():
-                try:
-                    st.session_state.temp_file_path.unlink()
-                except:
-                    pass
-            st.session_state.temp_file_path = None
             # Offer a way to go back
             if st.button("⬅️ Back to Upload"):
                 st.session_state.workflow_step = 'upload'
@@ -489,6 +489,15 @@ def render_process_file_step(strategy):
 
 def render_overrides_step(strategy):
     """Renders the UI for manual overrides and generation options."""
+    # CRITICAL: Cleanup temp file now that we are safely in the next step
+    if st.session_state.get('temp_file_path') and Path(st.session_state.get('temp_file_path')).exists():
+        try:
+            Path(st.session_state.get('temp_file_path')).unlink()
+        except Exception as cleanup_error:
+            st.warning(f"Could not delete temporary file: {cleanup_error}")
+    st.session_state.temp_file_path = None
+    st.session_state.uploaded_filename = None
+
     st.subheader(f"6. Manual Overrides for {strategy.name}")
 
     ui_config = strategy.get_override_ui_config()

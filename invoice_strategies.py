@@ -16,9 +16,15 @@ from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any, Optional, Tuple
 from zoneinfo import ZoneInfo
+import logging
 
 # Get the directory where this script is located
 SCRIPT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
+# Add project subdirectories to the Python path to ensure correct module resolution
+sys.path.insert(0, str(SCRIPT_DIR))
+sys.path.insert(0, str(SCRIPT_DIR / "create_json"))
+sys.path.insert(0, str(SCRIPT_DIR / "invoice_gen"))
+
 
 # Import shared modules - will be imported when needed to avoid circular imports
 # from invoice_gen.print_area_config import PrintAreaConfig
@@ -91,11 +97,11 @@ class InvoiceGenerationStrategy(ABC):
             # st.info(f"Subprocess executed successfully: {result.stdout}")
 
         except subprocess.CalledProcessError as e:
-            error_msg = (e.stdout + e.stderr).lower()
+            error_msg = ((e.stdout or '') + (e.stderr or '')).lower()
             if any(keyword in error_msg for keyword in ['config', 'template', 'not found', 'missing', 'no such file']):
                 self._show_config_error(identifier_for_error)
             else:
-                st.error(f"A process failed to execute. Error: {e.stderr or e.stdout}")
+                st.error(f"A process failed to execute. Error: {e.stderr or e.stdout or 'Unknown error'}")
             raise # Re-raise the exception to halt execution
 
     def _show_config_error(self, po_number: str):
@@ -223,33 +229,35 @@ class HighQualityLeatherStrategy(InvoiceGenerationStrategy):
             return self.get_required_fields()
 
     def process_excel_to_json(self, excel_path: Path, json_output_dir: Path, **kwargs) -> Tuple[Path, str]:
-        """Process Excel using create_json automation script"""
-        import subprocess
-        import sys
-
-        identifier = Path(excel_path).stem
+        """Process Excel to JSON using the main CLI script for High-Quality leather."""
+        identifier = excel_path.stem
         json_path = json_output_dir / f"{identifier}.json"
+        
+        # The command needs to be constructed to call the correct script.
+        # This assumes a script exists at 'create_json/main.py' that can handle this.
+        command = [
+            sys.executable,
+            str(SCRIPT_DIR / "create_json" / "main.py"),
+            "process-excel",
+            "--excel-path", str(excel_path),
+            "--json-path", str(json_path)
+        ]
 
-        # Get the path to create_json/main.py
-        create_json_script = SCRIPT_DIR / "create_json" / "main.py"
-
-        with st.spinner("Automatically processing and validating your file..."):
-            # Run the create_json script with the Excel file and output directory
-            cmd = [
-                sys.executable,
-                str(create_json_script),
-                "--input-excel", str(excel_path),
-                "--output-dir", str(json_output_dir)
-            ]
+        with st.spinner(f"Processing '{identifier}' to generate JSON..."):
             try:
-                self._run_subprocess(cmd, cwd=SCRIPT_DIR / "create_json", identifier_for_error=identifier)
-                st.success("Excel processing completed successfully!")
-            except subprocess.CalledProcessError:
-                # The error is already displayed by _run_subprocess, just raise a runtime error to stop
-                raise RuntimeError(f"Excel processing failed for {identifier}")
+                # We use the generic subprocess runner.
+                # Pass the root directory as cwd.
+                self._run_subprocess(command, cwd=SCRIPT_DIR, identifier_for_error=identifier)
+                st.success("Excel processing completed.")
+            except subprocess.CalledProcessError as e:
+                # The _run_subprocess method already logs the error to streamlit.
+                # We just need to raise a runtime error to stop execution.
+                raise RuntimeError("Excel to JSON processing script failed.") from e
 
-        if not json_path.exists():
-            raise FileNotFoundError(f"Processing failed: JSON file was not created by automation script")
+        # Verify that the JSON file was created and is not empty
+        if not json_path.exists() or json_path.stat().st_size == 0:
+            st.error("The processing script ran but did not create a valid JSON file.")
+            raise RuntimeError("Excel processing failed to create a JSON file.")
 
         return json_path, identifier
 
@@ -449,10 +457,6 @@ class SecondLayerLeatherStrategy(InvoiceGenerationStrategy):
 
                 # Import the header mapping from create_json config
                 try:
-                    import sys
-                    create_json_path = SCRIPT_DIR / "create_json"
-                    if str(create_json_path) not in sys.path:
-                        sys.path.insert(0, str(create_json_path))
                     from config import TARGET_HEADERS_MAP
                 except ImportError:
                     # Fallback to hardcoded mapping if config import fails
@@ -577,35 +581,34 @@ class SecondLayerLeatherStrategy(InvoiceGenerationStrategy):
             return ["json_file"]
 
     def process_excel_to_json(self, excel_path: Path, json_output_dir: Path, **kwargs) -> Tuple[Path, str]:
-        """Process Excel using Second_Layer script - Create initial JSON, invoice details added later"""
-        CREATE_JSON_DIR = kwargs.get('create_json_dir')
+        """Process Excel using the dedicated second_layer_main.py script via a subprocess."""
+        identifier = excel_path.stem
+        json_path = json_output_dir / f"{identifier}.json"
 
-        po_number = Path(excel_path).stem
-        json_path = json_output_dir / f"{po_number}.json"
+        command = [
+            sys.executable,
+            str(SCRIPT_DIR / "create_json" / "second_layer_main.py"),
+            str(excel_path),
+            "--output", str(json_path)
+        ]
 
-        # Call the original script to create initial JSON (without invoice details)
-        with st.spinner("Processing Excel file..."):
-            cmd = [
-                sys.executable,
-                str(CREATE_JSON_DIR / "Second_Layer(main).py"),
-                str(excel_path),
-                "-o", str(json_path)
-            ]
-
+        with st.spinner(f"Processing '{identifier}' for 2nd Layer data aggregation..."):
             try:
-                self._run_subprocess(cmd, cwd=CREATE_JSON_DIR, identifier_for_error=po_number)
-                # Check if the script actually succeeded (JSON file was created)
-                if json_path.exists() and json_path.stat().st_size > 0:
-                    st.success(f"Excel processing complete: '{json_path.name}' created.")
-                else:
-                    st.error("Excel processing FAILED - no JSON file created.")
-                    raise RuntimeError("Excel processing failed to create a JSON file.")
+                # Use the generic subprocess runner, similar to HighQualityLeatherStrategy
+                self._run_subprocess(command, cwd=SCRIPT_DIR, identifier_for_error=identifier)
+            except subprocess.CalledProcessError as e:
+                # The _run_subprocess method logs the error to streamlit, but we re-raise
+                # a more informative error to halt execution and provide context.
+                error_message = f"2nd Layer Excel to JSON script failed for '{identifier}'. STDERR: {e.stderr}"
+                raise RuntimeError(error_message) from e
 
-            except subprocess.CalledProcessError:
-                # Error is handled by the helper, just raise to stop execution
-                raise RuntimeError("Excel processing failed.")
+        # Verify that the JSON file was created and is not empty
+        if not json_path.exists() or json_path.stat().st_size == 0:
+            st.error(f"The 2nd Layer processing script ran but did not create the expected JSON file: '{json_path.name}'.")
+            raise FileNotFoundError(f"Excel processing failed to create a JSON file named '{json_path.name}'.")
 
-        return json_path, po_number
+        st.success("2nd Layer Excel processing completed.")
+        return json_path, identifier
 
     def get_override_ui_config(self) -> Dict[str, Any]:
         """Return UI config for 2nd layer overrides"""
@@ -875,11 +878,8 @@ def apply_print_settings_to_files(file_paths: List[Path], invoice_gen_dir: Path 
         return 0, 0
 
     # Import here to avoid circular imports
-    if invoice_gen_dir and str(invoice_gen_dir) not in sys.path:
-        sys.path.insert(0, str(invoice_gen_dir))
-
     try:
-        from print_area_config import PrintAreaConfig
+        from invoice_gen.print_area_config import PrintAreaConfig
     except ImportError:
         st.error("Could not import PrintAreaConfig. Please check invoice_gen directory.")
         return 0, 0

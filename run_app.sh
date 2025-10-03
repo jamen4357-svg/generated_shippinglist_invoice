@@ -5,6 +5,9 @@ echo "  Invoice Generation App Launcher"
 echo "========================================"
 echo
 
+# Change to the script's directory
+cd "$(dirname "$0")"
+
 echo "Activating virtual environment..."
 source venv/bin/activate
 

@@ -24,11 +24,6 @@
           "match_mode": "exact"
         },
         {
-          "find": "[[DESCRIPTION]]",
-          "data_path": ["aggregated_summary", "description"],
-          "match_mode": "exact"
-        },
-        {
           "find": "[[DATE]]",
           "data_path": ["aggregated_summary", "inv_date"],
           "is_date": true,
@@ -56,6 +51,10 @@
         {
           "find": "[[AMOUNT]]",
           "formula_template": "{[[NET]]}*{[[UNIT]]}"
+        },
+        {
+          "find": "[[DESCRIPTION]]",
+          "data_path": ["aggregated_summary", "desc"]
         }
       ]
     },
@@ -83,11 +82,6 @@
           "match_mode": "exact"
         },
         {
-          "find": "[[DESCRIPTION]]",
-          "data_path": ["aggregated_summary", "description"],
-          "match_mode": "exact"
-        },
-        {
           "find": "[[DATE]]",
           "data_path": ["aggregated_summary", "inv_date"],
           "is_date": true,
@@ -115,6 +109,10 @@
         {
           "find": "[[AMOUNT]]",
           "formula_template": "{[[NET]]}*{[[UNIT]]}"
+        },
+        {
+          "find": "[[DESCRIPTION]]",
+          "data_path": ["aggregated_summary", "desc"]
         }
       ]
     },
@@ -144,8 +142,7 @@
         },
         {
           "find": "[[DESCRIPTION]]",
-          "data_path": ["aggregated_summary", "description"],
-          "match_mode": "exact"
+          "data_path": ["aggregated_summary", "desc"]
         },
         {
           "find": "[[DATE]]",
@@ -180,9 +177,9 @@
         { "row": 0, "col": 8, "text": "CBM", "id": "col_cbm", "rowspan": 1, "colspan": 1 }
       ],
       "mappings": {
-        "initial_static": { "column_header_id": "col_static", "values": [ "VENDOR#:", "Des: LEATHER", "Case Qty:", "MADE IN CAMBODIA" ] },
+        "initial_static": { "column_header_id": "col_static", "values": [ "VENDOR#:", "Des: [[DESCRIPTION]]", "Case Qty:", "MADE IN CAMBODIA" ] },
         "data_map": {
-          "po": { "id": "col_po" }, "item": { "id": "col_item" }, "description": { "id": "col_desc" },
+          "po": { "id": "col_po" }, "item": { "id": "col_item" }, "desc": { "id": "col_desc" },
           "pallet_count": { "id": "col_pallet" }, "pcs": { "id": "col_qty_pcs" }, "sqft": { "id": "col_qty_sf" },
           "net": { "id": "col_net" }, "gross": { "id": "col_gross" }, "cbm": { "id": "col_cbm" }
         },

@@ -22,7 +22,7 @@ HEADER_IDENTIFICATION_PATTERN = r"^(批次号|订单号|物料代码|总张数|�
 EXPECTED_HEADER_DATA_TYPES = {
     'po': ['string', 'numeric'],
     'item': ['string'], # Production Order is always a string that matches the pattern
-    'description': ['string'],
+    'desc': ['string'],
     'pcs': ['numeric'],
     'net': ['numeric'],
     'gross': ['numeric'],
@@ -64,7 +64,7 @@ TARGET_HEADERS_MAP = {
     # --- Less Certain Canonical Names ---
     "date_recipt": ["入库时间", "入库日期", "date receipt", "Date Receipt", "date receipt", "Date Receipt", "date receipt"],
     "cbm": ["cbm", "材积", "CBM","remarks", "备注", "Remark", 'remark', '低', "REMARKS", "REMARK"],          # Primary English: 'remarks', Primary Chinese: '备注'
-    "description": ["description","产品名称", "品名规格", "描述", "desc", "DESCRIPTION"],      # Primary English: 'description', Primary Chinese: '品名规格'
+    "desc": ["description","产品名称", "品名规格", "描述", "desc", "DESCRIPTION"],      # Primary English: 'description', Primary Chinese: '品名规格'
     "inv_no": ["invoice no", "发票号码", "INV NO", "INV NO", "inv no", "INV NO", "inv no", "INVOICE NO"],    # Primary English: 'invoice no', Primary Chinese: '发票号码'
     "inv_date": ["invoice date", "发票日期", "INV DATE", "INV DATE", "inv date", "INV DATE", "inv date", "INVOICE DATE", "invoice date"], # Primary English: 'invoice date', Primary Chinese: '发票日期'
     "inv_ref": ["ref", "invoice ref", "ref no", "REF NO", "REF NO", "ref no", "inv ref", "INV REF", "INVOICE REF"],

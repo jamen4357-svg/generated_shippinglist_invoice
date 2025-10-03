@@ -102,7 +102,7 @@ def _count_pallets(all_tables_data, field_to_count):
 def aggregate_extracted_data(all_tables_data):
     """Aggregates data to create a summary view."""
     fields_to_sum = {'net', 'gross', 'cbm'}
-    fields_to_collect = {'po', 'item', 'description'}
+    fields_to_collect = ['po', 'item', 'desc']
     field_to_count = 'pallet_count'
 
     final_totals = _sum_fields(all_tables_data, fields_to_sum)

@@ -108,6 +108,9 @@ def find_and_replace(
     simple_rules = [r for r in rules if "formula_template" not in r]
     formula_rules = [r for r in rules if "formula_template" in r]
 
+    # Ensure [[DESCRIPTION]] replacement happens last among simple rules
+    simple_rules.sort(key=lambda r: (r.get("find") == "[[DESCRIPTION]]", r.get("find", "")))
+
     for sheet in workbook.worksheets:
         if sheet.sheet_state != 'visible':
             continue

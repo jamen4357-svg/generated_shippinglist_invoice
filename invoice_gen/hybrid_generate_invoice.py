@@ -171,12 +171,8 @@ def main():
                 print(f"Processing '{sheet_name}' as a packing list.")
                 
                 # --- REVISION ---
-                # First, perform the standard text replacement for any placeholders on the sheet.
-                print(" -> Step 1: Performing text replacement for placeholders...")
-                text_replace_utils.find_and_replace(output_workbook, sheet_config.get("replacements", []), 50, 20, invoice_data)
-
-                # Second, continue with the detailed packing list table generation.
-                print(" -> Step 2: Generating detailed packing list table...")
+                # First, generate the detailed packing list table.
+                print(" -> Step 1: Generating detailed packing list table...")
                 start_row = sheet_config.get("start_row", 1)
                 merges_to_restore = merge_utils.store_original_merges(output_workbook, [sheet_name])
                 rows_to_add = packing_list_utils.calculate_rows_to_generate(invoice_data, sheet_config)
@@ -187,6 +183,10 @@ def main():
                 
                 packing_list_utils.generate_full_packing_list(worksheet, start_row, invoice_data, sheet_config)
                 merge_utils.find_and_restore_merges_heuristic(output_workbook, merges_to_restore, [sheet_name])
+
+                # Second, perform the standard text replacement for any placeholders on the sheet.
+                print(" -> Step 2: Performing text replacement for placeholders...")
+                text_replace_utils.find_and_replace(output_workbook, sheet_config.get("replacements", []), 50, 20, invoice_data)
             
             else:
                 print(f"Warning: Unknown process type '{process_type}' for sheet '{sheet_name}'. Skipping.")

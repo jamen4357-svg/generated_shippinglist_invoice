@@ -8,7 +8,7 @@ from openpyxl.utils import get_column_letter
 from decimal import Decimal, InvalidOperation
 
 # Import config values, now including the new pattern-matching configs
-from config import (
+from .config import (
     TARGET_HEADERS_MAP,
     HEADER_SEARCH_ROW_RANGE,
     HEADER_SEARCH_COL_RANGE,

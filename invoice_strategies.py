@@ -597,7 +597,7 @@ class SecondLayerLeatherStrategy(InvoiceGenerationStrategy):
         with st.spinner("Processing Excel file..."):
             cmd = [
                 sys.executable,
-                str(CREATE_JSON_DIR / "Second_Layer(main).py"),
+                str(CREATE_JSON_DIR / "second_layer_main.py"),
                 str(excel_path),
                 "-o", str(json_path)
             ]

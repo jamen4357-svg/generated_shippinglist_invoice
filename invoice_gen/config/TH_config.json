@@ -25,8 +25,7 @@
         },
         {
           "find": "[[DESCRIPTION]]",
-          "data_path": ["aggregated_summary", "description"],
-          "match_mode": "exact"
+          "data_path": ["aggregated_summary", "desc"]
         },
         {
           "find": "[[DATE]]",
@@ -84,8 +83,7 @@
         },
         {
           "find": "[[DESCRIPTION]]",
-          "data_path": ["aggregated_summary", "description"],
-          "match_mode": "exact"
+          "data_path": ["aggregated_summary", "desc"]
         },
         {
           "find": "[[DATE]]",
@@ -144,8 +142,7 @@
         },
         {
           "find": "[[DESCRIPTION]]",
-          "data_path": ["aggregated_summary", "description"],
-          "match_mode": "exact"
+          "data_path": ["aggregated_summary", "desc"]
         },
         {
           "find": "[[DATE]]",

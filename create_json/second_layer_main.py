@@ -9,10 +9,10 @@ import os
 # Add the parent directory to the Python path so we can import modules from the root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from excel_handler import ExcelHandler
-import sheet_parser
-from config import SHEET_NAME, STOP_EXTRACTION_ON_EMPTY_COLUMN
-from util.converters import DataConverter
+from .excel_handler import ExcelHandler
+from . import sheet_parser
+from .config import SHEET_NAME, STOP_EXTRACTION_ON_EMPTY_COLUMN
+from .util.converters import DataConverter
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
@@ -114,6 +114,7 @@ def aggregate_extracted_data(all_tables_data):
         aggregated_summary[field] = ", ".join(sorted(list(value_set)))
     
     aggregated_summary['pallet_count'] = pallet_count
+    
     return aggregated_summary
 
 def write_output_json(raw_data, aggregated_summary, output_filepath):

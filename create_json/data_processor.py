@@ -6,7 +6,7 @@ import decimal # Use Decimal for precise calculations
 import re
 import pprint
 # Import config values (consider passing as arguments)
-from config import DISTRIBUTION_BASIS_COLUMN # Keep this
+from .config import DISTRIBUTION_BASIS_COLUMN # Keep this
 
 # Set precision for Decimal calculations
 decimal.getcontext().prec = 28 # Default precision, adjust if needed

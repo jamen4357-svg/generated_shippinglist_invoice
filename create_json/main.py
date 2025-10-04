@@ -32,9 +32,9 @@ except ImportError:
     logging.warning("Using dummy config values due to import failure.")
 
 
-from excel_handler import ExcelHandler
-import sheet_parser
-import data_processor # Includes all processing functions
+from .excel_handler import ExcelHandler
+from . import sheet_parser
+from . import data_processor # Includes all processing functions
 
 # Configure logging (Set level as needed, DEBUG is useful)
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')

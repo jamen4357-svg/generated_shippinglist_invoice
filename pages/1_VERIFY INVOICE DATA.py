@@ -85,8 +85,15 @@ def process_json_file(file_path):
     cambodia_tz = ZoneInfo("Asia/Phnom_Penh")
     df['creating_date'] = datetime.now(cambodia_tz).strftime('%Y-%m-%d %H:%M:%S')
     df['status'] = 'active'
+    
+    # Define columns that should NOT be converted to numeric
+    string_columns = ['inv_no', 'inv_ref', 'po', 'item', 'description', 'unit', 'production_order_no', 'status', 'creating_date', 'inv_date']
+    
+    # Convert only the appropriate columns to numeric types
     for col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors='ignore')
+        if col not in string_columns:
+            df[col] = pd.to_numeric(df[col], errors='ignore')
+            
     return df.reindex(columns=FINAL_COLUMNS), manual_containers
 
 def update_summary_for_invoice(conn, inv_ref_to_update):
@@ -149,8 +156,8 @@ def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
                 description=f"Amended invoice data from file '{source_file_path.name}' - Replaced {len(existing_df)} records with {len(new_df)} new records",
                 activity_type='DATA_AMENDMENT',
                 username=user_info['username'],
-                target_invoice_ref=new_inv_ref,
-                target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
+                target_invoice_ref=str(new_inv_ref),
+                target_invoice_no=str(new_df['inv_no'].iloc[0]) if 'inv_no' in new_df.columns and pd.notna(new_df['inv_no'].iloc[0]) else None,
                 action_description=f"Amended invoice data from '{source_file_path.name}' - Replaced {len(existing_df)} records with {len(new_df)} new records",
                 old_values=existing_df.to_dict('records')[:5],  # Store first 5 records as sample
                 new_values=new_df.to_dict('records')[:5],  # Store first 5 records as sample
@@ -186,8 +193,8 @@ def handle_amendment(source_file_path, new_df, existing_df, manual_containers):
                 description=f"Rejected amendment proposal from file '{source_file_path.name}'",
                 activity_type='DATA_AMENDMENT',
                 username=user_info['username'],
-                target_invoice_ref=new_df['inv_ref'].iloc[0] if 'inv_ref' in new_df.columns else None,
-                target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
+                target_invoice_ref=str(new_df['inv_ref'].iloc[0]) if 'inv_ref' in new_df.columns and pd.notna(new_df['inv_ref'].iloc[0]) else None,
+                target_invoice_no=str(new_df['inv_no'].iloc[0]) if 'inv_no' in new_df.columns and pd.notna(new_df['inv_no'].iloc[0]) else None,
                 action_description=f"Rejected amendment proposal from '{source_file_path.name}'",
                 old_values=existing_df.to_dict('records')[:5],
                 new_values=new_df.to_dict('records')[:5],
@@ -218,8 +225,8 @@ def handle_new_invoice(source_file_path, new_df, manual_containers):
                 description=f"Verified and inserted new invoice from file '{source_file_path.name}' - {len(new_df)} records added",
                 activity_type='DATA_VERIFICATION',
                 username=user_info['username'],
-                target_invoice_ref=new_inv_ref,
-                target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
+                target_invoice_ref=str(new_inv_ref),
+                target_invoice_no=str(new_df['inv_no'].iloc[0]) if 'inv_no' in new_df.columns and pd.notna(new_df['inv_no'].iloc[0]) else None,
                 action_description=f"Verified and inserted new invoice from '{source_file_path.name}' - {len(new_df)} records added",
                 new_values=new_df.to_dict('records')[:5],  # Store first 5 records as sample
                 success=True
@@ -249,8 +256,8 @@ def handle_new_invoice(source_file_path, new_df, manual_containers):
                 description=f"Rejected new invoice proposal from file '{source_file_path.name}'",
                 activity_type='DATA_VERIFICATION',
                 username=user_info['username'],
-                target_invoice_ref=new_inv_ref,
-                target_invoice_no=new_df['inv_no'].iloc[0] if 'inv_no' in new_df.columns else None,
+                target_invoice_ref=str(new_inv_ref),
+                target_invoice_no=str(new_df['inv_no'].iloc[0]) if 'inv_no' in new_df.columns and pd.notna(new_df['inv_no'].iloc[0]) else None,
                 action_description=f"Rejected new invoice proposal from '{source_file_path.name}'",
                 new_values=new_df.to_dict('records')[:5],
                 success=True
@@ -262,6 +269,67 @@ def handle_new_invoice(source_file_path, new_df, manual_containers):
         st.warning(f"Invoice '{new_inv_ref}' rejected and source file deleted.")
         st.rerun()
 
+def extract_invoice_info_from_filename(filename):
+    """
+    Extract invoice reference and number from filename.
+    Looks for patterns like 'TH25003', 'JLFHM25004', 'MOTO25042E', etc.
+    """
+    import re
+    from pathlib import Path
+    
+    # Get filename without extension
+    stem = Path(filename).stem
+    
+    # Common patterns for invoice references
+    # Pattern 1: Letters followed by numbers (e.g., TH25003, JLFHM25004, MOTO25042E)
+    pattern1 = re.search(r'([A-Z]+[0-9]+[A-Z]*)', stem.upper())
+    if pattern1:
+        candidate = pattern1.group(1)
+        # If it looks like a valid invoice ref (letters + numbers), return it
+        if len(candidate) >= 4 and any(c.isdigit() for c in candidate):
+            return candidate
+    
+    # Pattern 2: Numbers with letters (e.g., 25042E)
+    pattern2 = re.search(r'(\d+[A-Z]+)', stem.upper())
+    if pattern2:
+        candidate = pattern2.group(1)
+        if len(candidate) >= 4:
+            return candidate
+    
+    # Pattern 3: Just numbers that look like invoice numbers
+    pattern3 = re.search(r'(\d{5,})', stem)
+    if pattern3:
+        candidate = pattern3.group(1)
+        if len(candidate) >= 5:
+            return candidate
+    
+    return None
+
+def get_invoice_ref_and_no(df, filename):
+    """
+    Get the best available invoice reference and number.
+    Priority: DataFrame values > extracted from filename > None
+    """
+    # Try to get from DataFrame first
+    inv_ref = None
+    inv_no = None
+    
+    if 'inv_ref' in df.columns and not df['inv_ref'].isna().all():
+        first_ref = df['inv_ref'].iloc[0]
+        if pd.notna(first_ref) and str(first_ref).strip() and not str(first_ref).startswith(('aklsdfj', 'dsfj')):
+            inv_ref = str(first_ref).strip()
+    
+    if 'inv_no' in df.columns and not df['inv_no'].isna().all():
+        first_no = df['inv_no'].iloc[0]
+        if pd.notna(first_no) and str(first_no).strip() and not str(first_no).startswith(('dsfj', 'aklsdfj')):
+            inv_no = str(first_no).strip()
+    
+    # If we don't have good values from DataFrame, try to extract from filename
+    if not inv_ref:
+        extracted = extract_invoice_info_from_filename(filename)
+        if extracted:
+            inv_ref = extracted
+    
 # --- Main Application Logic ---
 setup_directories()
 json_files = sorted(JSON_DIRECTORY.glob('*.json'))

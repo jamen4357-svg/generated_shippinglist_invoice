@@ -591,12 +591,38 @@ with tab3:
             # Prepare data for display
             display_data = []
             for activity in activities:
+                # Ensure invoice ref and no are proper strings, not ASCII codes
+                invoice_ref = activity['target_invoice_ref']
+                invoice_no = activity['target_invoice_no']
+                
+                # Fix potential ASCII conversion issues
+                if invoice_ref and isinstance(invoice_ref, str):
+                    # Check if it looks like ASCII codes (comma-separated numbers)
+                    if ',' in invoice_ref and len(invoice_ref.split(',')) > 3:
+                        try:
+                            # Try to decode ASCII codes back to string
+                            parts = invoice_ref.split(',')
+                            if all(p.strip().isdigit() and 0 < int(p.strip()) < 128 for p in parts):
+                                invoice_ref = ''.join(chr(int(p.strip())) for p in parts)
+                        except:
+                            pass  # Keep original if conversion fails
+                
+                if invoice_no and isinstance(invoice_no, str):
+                    # Same fix for invoice number
+                    if ',' in invoice_no and len(invoice_no.split(',')) > 3:
+                        try:
+                            parts = invoice_no.split(',')
+                            if all(p.strip().isdigit() and 0 < int(p.strip()) < 128 for p in parts):
+                                invoice_no = ''.join(chr(int(p.strip())) for p in parts)
+                        except:
+                            pass
+                
                 display_data.append({
                     'Timestamp': activity['timestamp'],
                     'User': activity['username'],
                     'Activity': activity['activity_type'],
-                    'Invoice Ref': activity['target_invoice_ref'] or 'N/A',
-                    'Invoice No': activity['target_invoice_no'] or 'N/A',
+                    'Invoice Ref': str(invoice_ref) if invoice_ref else 'N/A',
+                    'Invoice No': str(invoice_no) if invoice_no else 'N/A',
                     'Description': activity['action_description'] or 'N/A',
                     'Success': '✅' if activity['success'] else '❌',
                     'IP': activity['ip_address'] or 'N/A'

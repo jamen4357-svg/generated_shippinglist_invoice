@@ -10,7 +10,6 @@ from zoneinfo import ZoneInfo
 import time
 import re
 from auth_wrapper import setup_page_auth
-from ui_utils.field_prefiller import render_field_prefiller
 
 # Import our strategy system
 from invoice_strategies import (
@@ -334,13 +333,11 @@ def render_collect_inputs_step(strategy):
         with col1:
             # Invoice Reference
             suggested_inv_ref = get_suggested_inv_ref()
-            render_field_prefiller(
-                field_label="Invoice Reference",
-                session_key="input_inv_ref",
-                suggested_value=st.session_state.get('uploaded_filename', suggested_inv_ref),
-                help_text="Click 'Use Filename' to use the uploaded file's name as the Invoice Reference."
+            inputs['inv_ref'] = st.text_input(
+                "Invoice Reference",
+                value=st.session_state.get("input_inv_ref", suggested_inv_ref),
+                key="input_inv_ref"
             )
-            inputs['inv_ref'] = st.session_state.get("input_inv_ref", "")
 
 
             # Unit Price
@@ -489,6 +486,9 @@ def render_process_file_step(strategy):
 
 def render_overrides_step(strategy):
     """Renders the UI for manual overrides and generation options."""
+    # CRITICAL: Preserve filename for auto-population BEFORE cleanup
+    st.session_state.filename_for_autofill = st.session_state.get('uploaded_filename', '')
+    
     # CRITICAL: Cleanup temp file now that we are safely in the next step
     if st.session_state.get('temp_file_path') and Path(st.session_state.get('temp_file_path')).exists():
         try:
@@ -496,9 +496,65 @@ def render_overrides_step(strategy):
         except Exception as cleanup_error:
             st.warning(f"Could not delete temporary file: {cleanup_error}")
     st.session_state.temp_file_path = None
-    st.session_state.uploaded_filename = None
+    st.session_state.uploaded_filename = None  # Now safe to clear
 
     st.subheader(f"6. Manual Overrides for {strategy.name}")
+
+    # For 2nd Layer Leather, overrides are collected in the collect_inputs step and applied during processing
+    # Skip the override UI and go directly to generation options
+    if strategy.name == "2nd Layer Leather":
+        st.info("📝 **Invoice Details:** (Collected in previous step)")
+        required_inputs = st.session_state.get('required_inputs', {})
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write(f"**Invoice Reference:** {required_inputs.get('inv_ref', 'N/A')}")
+            st.write(f"**Unit Price:** {required_inputs.get('unit_price', 'N/A')}")
+        with col2:
+            st.write(f"**Invoice Date:** {required_inputs.get('inv_date', 'N/A')}")
+
+        # Show summary data if available
+        summary_data = st.session_state.get('summary_data')
+        if summary_data:
+            st.markdown("---")
+            st.subheader("📊 Invoice Summary")
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("PO Number", summary_data.get("po_number", "N/A"))
+                st.metric("Total Amount", f"${summary_data.get('amount', 0):,.2f}")
+            with col2:
+                st.metric("Total Pieces", summary_data.get("pcs", 0))
+                st.metric("Net Weight", f"{summary_data.get('net', 0):,.2f} kg")
+            with col3:
+                st.metric("Pallets", summary_data.get("pallet_count", 0))
+                st.metric("Gross Weight", f"{summary_data.get('gross', 0):,.2f} kg")
+            with col4:
+                st.metric("CBM", f"{summary_data.get('cbm', 0):,.2f}")
+                st.metric("Item", summary_data.get("item", "N/A"))
+
+        # Set empty overrides since they're already applied
+        overrides = {}
+        
+        st.session_state.overrides = overrides
+
+        # Navigation
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            if st.button("⬅️ Back to Upload", use_container_width=True):
+                st.session_state.workflow_step = 'upload'
+                st.rerun()
+        with col2:
+            if st.button("Apply Overrides & Continue", use_container_width=True, type="primary"):
+                # Apply overrides to JSON (should be no-op for 2nd layer)
+                if strategy.apply_overrides(st.session_state.json_path, overrides):
+                    st.session_state.workflow_step = 'generate'
+                    st.success("✅ Overrides applied successfully!")
+                    st.rerun()
+                else:
+                    st.error("❌ Failed to apply overrides")
+        with col3:
+            if st.button("🔄 Reset Workflow", use_container_width=True):
+                reset_workflow()
+        return
 
     ui_config = strategy.get_override_ui_config()
 
@@ -506,41 +562,33 @@ def render_overrides_step(strategy):
     overrides = {}
 
     for key, config in ui_config.items():
-        # --- START: feature_field_prefiller ---
-        if config.get('prefill_from_filename', False):
-            suggested_value = st.session_state.get('uploaded_filename', '')
-            # Clean up the filename to be more suitable for an invoice number
-            if suggested_value:
-                suggested_value = Path(suggested_value).stem # Remove extension
-            
-            render_field_prefiller(
-                field_label=config['label'],
-                session_key=f"override_{key}",
-                suggested_value=suggested_value,
-                help_text="Click 'Use Filename' to use the uploaded file's name."
-            )
-            overrides[key] = st.session_state.get(f"override_{key}", "")
-        elif key == 'inv_no':  # Special handling for invoice number with filename suggestion
-            suggested_filename = st.session_state.get('uploaded_filename', '')
-            # Clean up the filename to be more suitable for an invoice number
-            if suggested_filename:
-                suggested_filename = Path(suggested_filename).stem  # Remove extension
-            
-            render_field_prefiller(
-                field_label=config['label'],
-                session_key=f"override_{key}",
-                suggested_value=suggested_filename,
-                help_text="Click 'Use Filename' to use the uploaded file's name as the invoice number."
-            )
-            overrides[key] = st.session_state.get(f"override_{key}", "")
-        # --- END: feature_field_prefiller ---
-        elif config['type'] == 'text_input':
+        if config['type'] == 'text_input':
             default_val = config.get('default', '')
-            if default_val == 'auto':
+            auto_populated_value = None
+            
+            # Auto-populate from filename if configured
+            if config.get('auto_populate_filename', False):
+                uploaded_filename = st.session_state.get('filename_for_autofill', '')
+                current_field_value = st.session_state.get(f"override_{key}", '')
+                
+                # Force auto-population if filename exists and field is empty or not set
+                if uploaded_filename and (f"override_{key}" not in st.session_state or not current_field_value):
+                    auto_populated_value = Path(uploaded_filename).stem
+                    default_val = auto_populated_value
+            elif default_val == 'auto':
                 default_val = get_suggested_inv_ref()
+            
+            # Determine the value for the text input
+            if auto_populated_value is not None:
+                # Use auto-populated value if available
+                input_value = auto_populated_value
+            else:
+                # Use session state or default
+                input_value = st.session_state.get(f"override_{key}", default_val)
+            
             overrides[key] = st.text_input(
                 config['label'],
-                value=default_val,
+                value=input_value,
                 key=f"override_{key}"
             )
 

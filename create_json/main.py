@@ -15,7 +15,7 @@ import time # Added for timing operations
 
 # Import from our refactored modules
 try:
-    import config as cfg # Keep config for fallback and other settings
+    from . import config as cfg # Keep config for fallback and other settings
 except ImportError:
     logging.error("Failed to import config.py. Please ensure it exists and is configured.")
     # Define dummy cfg values if needed for script to load, but it will likely fail later

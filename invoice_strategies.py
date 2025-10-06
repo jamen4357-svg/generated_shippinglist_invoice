@@ -80,6 +80,15 @@ class InvoiceGenerationStrategy(ABC):
         """A shared helper to run a subprocess and handle common errors."""
         sub_env = os.environ.copy()
         sub_env['PYTHONIOENCODING'] = 'utf-8'
+        
+        # Ensure the subprocess has the same Python path as the main process
+        if 'PYTHONPATH' not in sub_env:
+            sub_env['PYTHONPATH'] = str(SCRIPT_DIR)
+        else:
+            # Prepend our project directory to existing PYTHONPATH
+            existing_paths = sub_env['PYTHONPATH'].split(os.pathsep)
+            if str(SCRIPT_DIR) not in existing_paths:
+                sub_env['PYTHONPATH'] = os.pathsep.join([str(SCRIPT_DIR)] + existing_paths)
 
         try:
             result = subprocess.run(
@@ -101,6 +110,9 @@ class InvoiceGenerationStrategy(ABC):
                 self._show_config_error(identifier_for_error)
             else:
                 st.error(f"A process failed to execute. Error: {e.stderr or e.stdout or 'Unknown error'}")
+                st.error(f"Command that failed: {' '.join(command)}")
+                st.error(f"Working directory: {cwd}")
+                st.error(f"Return code: {e.returncode}")
             raise # Re-raise the exception to halt execution
 
     def _show_config_error(self, po_number: str):
@@ -242,7 +254,7 @@ class HighQualityLeatherStrategy(InvoiceGenerationStrategy):
             # Use the correct CLI arguments that main.py actually supports
             command = [
                 sys.executable,
-                str(SCRIPT_DIR / "create_json" / "main.py"),
+                "-m", "create_json.main",
                 "--input-excel", str(excel_path),
                 "--output-dir", str(json_output_dir)
             ]
@@ -266,7 +278,7 @@ class HighQualityLeatherStrategy(InvoiceGenerationStrategy):
     def get_override_ui_config(self) -> Dict[str, Any]:
         """Return UI config for high-quality leather overrides"""
         return {
-            "inv_no": {"type": "text_input", "label": "Invoice No", "default": ""},
+            "inv_no": {"type": "text_input", "label": "Invoice No", "default": "", "auto_populate_filename": True},
             "inv_ref": {"type": "text_input", "label": "Invoice Ref", "default": "auto"},
             "inv_date": {"type": "date_input", "label": "Invoice Date", "default": "tomorrow"},
             "containers": {"type": "text_area", "label": "Container / Truck (One per line)", "default": ""}
@@ -596,8 +608,7 @@ class SecondLayerLeatherStrategy(InvoiceGenerationStrategy):
         # Call the original script to create initial JSON (without invoice details)
         with st.spinner("Processing Excel file..."):
             cmd = [
-                sys.executable,
-                str(CREATE_JSON_DIR / "second_layer_main.py"),
+                sys.executable, "-m", "create_json.second_layer_main",
                 str(excel_path),
                 "-o", str(json_path)
             ]
@@ -622,7 +633,7 @@ class SecondLayerLeatherStrategy(InvoiceGenerationStrategy):
     def get_override_ui_config(self) -> Dict[str, Any]:
         """Return UI config for 2nd layer overrides"""
         return {
-            "inv_ref": {"type": "text_input", "label": "Invoice Reference", "default": "auto"},
+            "inv_ref": {"type": "text_input", "label": "Invoice Reference", "default": "auto", "auto_populate_filename": True},
             "inv_date": {"type": "date_input", "label": "Invoice Date", "default": "today"},
             "unit_price": {"type": "number_input", "label": "Unit Price", "default": 0.61, "min": 0.0, "step": 0.01}
         }

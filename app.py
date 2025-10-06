@@ -4,7 +4,7 @@ import sqlite3
 import os
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from login import (
+from src.auth.login import (
     check_authentication, show_logout_button, show_user_info,
     show_login_form, create_user, validate_registration_token
 )
@@ -340,7 +340,7 @@ if user_info and user_info['role'] == 'admin':
         
         # Quick system overview
         try:
-            from login import get_security_events, get_business_activities, get_storage_stats
+            from src.auth.login import get_security_events, get_business_activities, get_storage_stats
             
             # Get quick stats
             security_events = get_security_events(limit=50)

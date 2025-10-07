@@ -139,7 +139,7 @@ class HighQualityLeatherStrategy(InvoiceGenerationStrategy):
         identifier = kwargs.get('identifier', json_path.stem)
 
         # Import here to avoid circular imports
-        from src.invoice_gen.generate_invoice import generate_invoice
+        from src.invoice_generator.generate_invoice import generate_invoice
 
         for option in options:
             option_config = next((opt for opt in self.get_generation_options() if opt['key'] == option), None)

@@ -10,7 +10,7 @@ from src.auth.login import (
     get_business_activities, get_activity_summary,
     create_user, generate_registration_token, USER_DB_PATH
 )
-from src.auth.auth_wrapper import setup_page_auth, create_admin_check_decorator
+from app import setup_page_auth, create_admin_check_decorator
 
 # --- Enhanced Admin Authentication Setup ---
 user_info = setup_page_auth(

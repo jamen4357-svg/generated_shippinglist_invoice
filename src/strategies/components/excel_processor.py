@@ -5,6 +5,7 @@ import streamlit as st
 import openpyxl
 import subprocess
 import sys
+import os
 from pathlib import Path
 from typing import Tuple, List
 from abc import ABC, abstractmethod
@@ -95,19 +96,22 @@ class ExcelProcessor:
         json_path = json_output_dir / f"{identifier}.json"
 
         # Get the path to create_json/main.py
-        create_json_script = self.script_dir / "create_json" / "main.py"
+        create_json_script = self.script_dir / "data_parser" / "main.py"
 
         with st.spinner(f"Processing '{identifier}' to generate JSON..."):
             # Use the correct CLI arguments that main.py actually supports
             command = [
                 sys.executable,
-                "-m", "create_json.main",
+                "-m", "data_parser.main",
                 "--input-excel", str(excel_path),
                 "--output-dir", str(json_output_dir)
             ]
             try:
                 # We use the generic subprocess runner from base strategy
                 # For now, we'll implement a basic subprocess call
+                sub_env = os.environ.copy()
+                sub_env['PYTHONPATH'] = os.pathsep.join(sys.path)
+                
                 result = subprocess.run(
                     command,
                     check=True,
@@ -115,7 +119,8 @@ class ExcelProcessor:
                     text=True,
                     cwd=self.script_dir,
                     encoding='utf-8',
-                    errors='replace'
+                    errors='replace',
+                    env=sub_env
                 )
                 st.success("Excel processing completed.")
             except subprocess.CalledProcessError as e:

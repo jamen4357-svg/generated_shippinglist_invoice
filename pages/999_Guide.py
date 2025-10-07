@@ -1,7 +1,7 @@
 import streamlit as st
 import json
 import os
-from src.auth.auth_wrapper import setup_page_auth
+from app import setup_page_auth
 
 # --- Enhanced Authentication Setup ---
 user_info = setup_page_auth(

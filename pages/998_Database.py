@@ -4,7 +4,7 @@ import shutil
 from datetime import datetime
 import sqlite3
 from zoneinfo import ZoneInfo
-from src.auth.auth_wrapper import setup_page_auth
+from app import setup_page_auth
 
 # --- Enhanced Authentication Setup ---
 user_info = setup_page_auth(

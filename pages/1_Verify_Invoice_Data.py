@@ -8,7 +8,7 @@ import shutil
 import json
 import time
 from zoneinfo import ZoneInfo
-from src.auth.auth_wrapper import setup_page_auth
+from app import setup_page_auth
 from src.auth.login import log_business_activity
 
 # --- Enhanced Authentication Setup ---

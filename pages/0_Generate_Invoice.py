@@ -9,7 +9,7 @@ import tempfile
 from zoneinfo import ZoneInfo
 import time
 import re
-from src.auth.auth_wrapper import setup_page_auth
+from app import setup_page_auth
 
 # Import our strategy system
 from src.strategies import (
@@ -30,8 +30,8 @@ st.title("Unified Invoice Generation Suite ⚙️📄")
 # --- Project Path & Directory Configuration ---
 try:
     PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-    CREATE_JSON_DIR = PROJECT_ROOT / "src" / "create_json"
-    INVOICE_GEN_DIR = PROJECT_ROOT / "src" / "invoice_gen"
+    DATA_PARSER_DIR = PROJECT_ROOT / "src" / "data_parser"
+    INVOICE_GEN_DIR = PROJECT_ROOT / "src" / "invoice_generator"
     DATA_DIR = PROJECT_ROOT / "data"
     JSON_OUTPUT_DIR = DATA_DIR / "invoices_to_process"
     TEMP_UPLOAD_DIR = DATA_DIR / "temp_uploads"
@@ -429,7 +429,7 @@ def render_process_file_step(strategy):
                     inv_ref=inv_ref,
                     inv_date=inv_date_str,
                     unit_price=unit_price,
-                    create_json_dir=CREATE_JSON_DIR,
+                    data_parser_dir=DATA_PARSER_DIR,
                     invoice_gen_dir=INVOICE_GEN_DIR
                 )
 
@@ -454,7 +454,7 @@ def render_process_file_step(strategy):
                 json_path, identifier = strategy.process_excel_to_json(
                     temp_file_path,
                     JSON_OUTPUT_DIR,
-                    create_json_dir=CREATE_JSON_DIR,
+                    data_parser_dir=DATA_PARSER_DIR,
                     invoice_gen_dir=INVOICE_GEN_DIR
                 )
 

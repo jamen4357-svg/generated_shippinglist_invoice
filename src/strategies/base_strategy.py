@@ -21,8 +21,8 @@ import logging
 SCRIPT_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent.parent
 # Add project subdirectories to the Python path to ensure correct module resolution
 sys.path.insert(0, str(SCRIPT_DIR))
-sys.path.insert(0, str(SCRIPT_DIR / "src" / "create_json"))
-sys.path.insert(0, str(SCRIPT_DIR / "src" / "invoice_gen"))
+sys.path.insert(0, str(SCRIPT_DIR / "src" / "data_parser"))
+sys.path.insert(0, str(SCRIPT_DIR / "src" / "invoice_generator"))
 
 
 class InvoiceGenerationStrategy(ABC):
@@ -72,9 +72,9 @@ class InvoiceGenerationStrategy(ABC):
         """Generate final documents and return list of generated files"""
         pass
 
-    def _run_subprocess(self, command: List[str], cwd: Path, identifier_for_error: str) -> None:
+    def _run_subprocess(self, command: List[str], cwd: Path, identifier_for_error: str, env: Optional[Dict[str, str]] = None) -> None:
         """A shared helper to run a subprocess and handle common errors."""
-        sub_env = os.environ.copy()
+        sub_env = env if env is not None else os.environ.copy()
         sub_env['PYTHONIOENCODING'] = 'utf-8'
 
         # Ensure the subprocess has the same Python path as the main process

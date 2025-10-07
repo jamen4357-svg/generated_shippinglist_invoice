@@ -1,5 +1,5 @@
 import streamlit as st
-from src.auth.auth_wrapper import setup_page_auth
+from app import setup_page_auth
 import os
 import sys
 from pathlib import Path
@@ -28,8 +28,8 @@ try:
     PROJECT_ROOT = Path(__file__).resolve().parent.parent
     CONFIG_GEN_DIR = PROJECT_ROOT / "config_template_cli"
     TEMP_DIR = PROJECT_ROOT / "data" / "temp_uploads"
-    CONFIG_OUTPUT_DIR = PROJECT_ROOT / "invoice_gen" / "config"
-    TEMPLATE_OUTPUT_DIR = PROJECT_ROOT / "invoice_gen" / "TEMPLATE"
+    CONFIG_OUTPUT_DIR = PROJECT_ROOT / "invoice_generator" / "config"
+    TEMPLATE_OUTPUT_DIR = PROJECT_ROOT / "invoice_generator" / "TEMPLATE"
     MAPPING_CONFIG_PATH = CONFIG_GEN_DIR / "mapping_config.json" # Added for local functions
     
     # Create necessary directories

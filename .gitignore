@@ -50,3 +50,8 @@ temp_uploads/
 # Ignore virtual environment and environment variable files
 venv/
 .env
+
+data/Invoice Record/master_invoice_data.db
+data/user_database.db
+pages/nuke_password.txt
+

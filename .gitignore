@@ -51,7 +51,11 @@ temp_uploads/
 venv/
 .env
 
-data/Invoice Record/master_invoice_data.db
-data/user_database.db
+
+# --- Sensitive Information ---
+# These files may contain sensitive information and should not be tracked.
+data/
 pages/nuke_password.txt
+
+recycle/
 

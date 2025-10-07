@@ -30,3 +30,7 @@ change the leather to cow leather for TIMBERLAND
 - need to check the bug on the invoice of the OJY that it doesnt delete or remove the table at the contract sheet
 
 - adding pallet arragement
+
+
+
+- dont forget to remove the database

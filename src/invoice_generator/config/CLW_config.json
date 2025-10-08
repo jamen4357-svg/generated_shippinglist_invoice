@@ -7,7 +7,7 @@
   "sheet_data_map": {
     "Invoice": "aggregation",
     "Contract": "aggregation",
-    "Packing list": "processed_tables_multi"
+    "Packing list": "processed_tables_data"
   },
   "data_mapping": {
     "Invoice": {

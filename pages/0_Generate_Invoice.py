@@ -29,7 +29,8 @@ st.title("Unified Invoice Generation Suite ⚙️📄")
 
 # --- Project Path & Directory Configuration ---
 try:
-    PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent
+    
     DATA_PARSER_DIR = PROJECT_ROOT / "src" / "data_parser"
     INVOICE_GEN_DIR = PROJECT_ROOT / "src" / "invoice_generator"
     DATA_DIR = PROJECT_ROOT / "data"
@@ -739,13 +740,28 @@ def render_generate_step(strategy):
                     zip_buffer = create_download_zip(files_to_zip)
 
                     st.subheader("5. Download Generated Files")
-                    st.download_button(
-                        label="📥 Download All as ZIP",
-                        data=zip_buffer,
-                        file_name=f"{st.session_state.identifier}_invoice_pack.zip",
-                        mime="application/zip",
-                        use_container_width=True
-                    )
+                    if zip_buffer:
+                        st.download_button(
+                            label="📥 Download All as ZIP",
+                            data=zip_buffer,
+                            file_name=f"{st.session_state.identifier}_invoice_pack.zip",
+                            mime="application/zip",
+                            use_container_width=True
+                        )
+                    else:
+                        st.error("❌ Failed to create ZIP file for download.")
+                        
+                        # Provide individual file downloads as fallback
+                        st.write("**Individual file downloads:**")
+                        for file_path in generated_files:
+                            with open(file_path, 'rb') as f:
+                                st.download_button(
+                                    label=f"📄 Download {file_path.name}",
+                                    data=f.read(),
+                                    file_name=file_path.name,
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    key=f"download_{file_path.name}"
+                                )
 
                     # Final navigation
                     st.button("🎉 Start New Workflow", on_click=reset_workflow, use_container_width=True)

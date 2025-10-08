@@ -138,8 +138,24 @@ class HighQualityLeatherStrategy(InvoiceGenerationStrategy):
         generated_files = []
         identifier = kwargs.get('identifier', json_path.stem)
 
+        # Get and resolve paths to ensure they work correctly
+        template_dir = kwargs.get('template_dir', './TEMPLATE')
+        config_dir = kwargs.get('config_dir', './config')
+        
+        # Convert to absolute paths if they aren't already
+        if isinstance(template_dir, str):
+            template_dir = Path(template_dir)
+        if isinstance(config_dir, str):
+            config_dir = Path(config_dir)
+            
+        # Make sure they're absolute paths
+        if not template_dir.is_absolute():
+            template_dir = template_dir.resolve()
+        if not config_dir.is_absolute():
+            config_dir = config_dir.resolve()
+
         # Import here to avoid circular imports
-        from src.invoice_generator.generate_invoice import generate_invoice
+        from src.invoice_generator import generate_invoice
 
         for option in options:
             option_config = next((opt for opt in self.get_generation_options() if opt['key'] == option), None)
@@ -153,7 +169,10 @@ class HighQualityLeatherStrategy(InvoiceGenerationStrategy):
                 generate_invoice(
                     json_file_path=json_path,
                     output_file_path=output_file,
-                    flags=flags
+                    flags=flags,
+                    template_dir=str(template_dir),
+                    config_dir=str(config_dir),
+                    verbose=True
                 )
                 generated_files.append(output_file)
                 st.success(f"Generated {option_config['name']}: {output_file.name}")

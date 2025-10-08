@@ -298,7 +298,7 @@ def show_user_info():
 def show_logout_button():
     """Display logout button in sidebar"""
     st.sidebar.markdown("---")
-    if st.sidebar.button("🚪 Logout", use_container_width=True):
+    if st.sidebar.button("🚪 Logout", use_container_width=True, key="logout_button"):
         user_info = st.session_state.get('user_info')
         if user_info:
             log_security_event(user_info['user_id'], 'LOGOUT', 'User logged out',

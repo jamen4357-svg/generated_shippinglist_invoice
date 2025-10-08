@@ -8,7 +8,20 @@ from openpyxl.utils import column_index_from_string, get_column_letter
 from typing import List, Dict, Any, Optional, Tuple, Union
 from decimal import Decimal
 from decimal import Decimal, InvalidOperation
-import merge_utils
+
+# Import merge_utils with path resolution
+try:
+    from . import merge_utils
+except ImportError:
+    try:
+        import sys
+        from pathlib import Path
+        current_dir = Path(__file__).parent
+        if str(current_dir) not in sys.path:
+            sys.path.insert(0, str(current_dir))
+        import merge_utils
+    except ImportError:
+        merge_utils = None
 
 # --- Constants for Styling ---
 thin_side = Side(border_style="thin", color="000000")
